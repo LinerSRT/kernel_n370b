@@ -71,9 +71,15 @@
 	};
 
 	utos {
-	compatible = "microtrust,utos";
-	interrupts = <GIC_SPI 252 IRQ_TYPE_EDGE_RISING>,
-		<GIC_SPI 253 IRQ_TYPE_EDGE_RISING>;
+		compatible = "microtrust,utos";
+		interrupts = <GIC_SPI 244 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SPI 245 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SPI 246 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SPI 250 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SPI 251 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SPI 252 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SPI 253 IRQ_TYPE_EDGE_RISING>,
+			<GIC_SPI 255 IRQ_TYPE_EDGE_RISING>;
 	};
 
 	psci {
@@ -409,6 +415,7 @@
 					regulator-min-microvolt = <2900000>;
 					regulator-max-microvolt = <3300000>;
 					regulator-enable-ramp-delay = <44>;
+					regulator-boot-on;
 				};
 				mt_pmic_vtref_ldo_reg: ldo_vtref {
 					regulator-name = "vtref";
@@ -421,6 +428,7 @@
 					regulator-min-microvolt = <1800000>;
 					regulator-max-microvolt = <3300000>;
 					regulator-enable-ramp-delay = <44>;
+					regulator-boot-on;
 				};
 				mt_pmic_vcam_af_ldo_reg: ldo_vcamaf {
 					regulator-name = "vcamaf";
@@ -1199,7 +1207,6 @@
 		touch: touch@ {
 			compatible = "mediatek,mt6735-touch",
 						"mediatek,mt6735m-touch";
-			vtouch-supply = <&mt_pmic_vgp1_ldo_reg>;
 		};
 
 		accdet: accdet@ {
@@ -1313,7 +1320,7 @@
 			audmiso-gpio = <144 0>;
 			audmosi-gpio = <145 0>;
 			vowclk-gpio = <148 0>;
-			extspkamp-gpio = <117 0>;
+			extspkamp-gpio = <8 0>;
 			i2s1clk-gpio = <80 0>;
 			i2s1dat-gpio = <78 0>;
 			i2s1mclk-gpio = <9 0>;
@@ -1804,10 +1811,54 @@
 			reg = <0x11006000 0x1000>;
 			interrupts = <GIC_SPI 77 IRQ_TYPE_LEVEL_LOW>;
 		};
+		flashlightgpio:gpio_flashlight{
+			compatible = "mediatek, gpio_flashlight";
+		};
+		halldriver: hall_driver {
+			compatible = "mediatek, hall_driver";
+		};
+        
+		hall: halleint {
+			compatible = "mediatek, HALL-eint";
+		};
+        
+		home: homkeyeint {
+			compatible = "mediatek, HOME-eint";
+		};
+        
+        fingerprint: fingerprintgd@ {
+                         compatible = "mediatek,goodix";
+        };
+        dtvdrv:dtv_drv{
+                         compatible = "mediatek,dtv_drv";
+        };
+        dtv: dtv {
+                         compatible = "mediatek, dtv-eint";
+        };
+
+        aw2028_led:aw2028_led_drv {
+
+                        compatible = "mediatek,aw2028_led";
+        };
+
+        hct_finger: hct_finger{
+                         compatible  = "mediatek,hct_finger";
+        };
+        
+		sim1_hot_plug: sim1_hot_plug {
+			compatible = "mediatek, sim1_hot_plug-eint";
+		};
+        
+		sim2_hot_plug: sim2_hot_plug {
+			compatible = "mediatek, sim2_hot_plug-eint";
+		};     
 	};
 	lcm: lcm {
 		compatible = "mediatek,lcm";
 	};
+	lcm_mode: lcm_mode {
+			compatible = "mediatek,lcm_mode";
+		};
 
 /* sensor part */
 		hwmsensor@0 {
@@ -1850,6 +1901,9 @@
 		};
 		m_mag_pl@0 {
 			compatible = "mediatek,m_mag_pl";
+		};
+		hall@0 {
+			compatible = "mediatek,hall_sensor";
 		};
 		orientation@0 {
 			compatible = "mediatek,orientation";

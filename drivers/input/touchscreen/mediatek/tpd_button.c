@@ -1,15 +1,3 @@
-/*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2 as
-* published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See http://www.gnu.org/licenses/gpl-2.0.html for more details.
-*/
 #include "tpd.h"
 
 /* #ifdef TPD_HAVE_BUTTON */
@@ -22,12 +10,12 @@ static int tpd_keys_dim[TPD_VIRTUAL_KEY_MAX][4];	/* = {0}; */
 static ssize_t mtk_virtual_keys_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
 	int i, j;
-	for (i = 0, j = 0; i < tpd_keycnt; i++) {
-		j += sprintf(buf+j, "%s:%d:%d:%d:%d:%d%s",
+
+	for (i = 0, j = 0; i < tpd_keycnt; i++)
+		j += sprintf(buf, "%s%s:%d:%d:%d:%d:%d%s", buf,
 			     __stringify(EV_KEY), tpd_keys[i],
 			     tpd_keys_dim[i][0], tpd_keys_dim[i][1],
 			     tpd_keys_dim[i][2], tpd_keys_dim[i][3], (i == tpd_keycnt - 1 ? "\n" : ":"));
-		}
 	return j;
 }
 
@@ -111,7 +99,6 @@ void tpd_button(unsigned int x, unsigned int y, unsigned int down)
 		tpd->btn_state = 0;
 	}
 }
-EXPORT_SYMBOL(tpd_button);
 
 void tpd_button_setting(int keycnt, void *keys, void *keys_dim)
 {
@@ -119,6 +106,5 @@ void tpd_button_setting(int keycnt, void *keys, void *keys_dim)
 	memcpy(tpd_keys, keys, keycnt * 4);
 	memcpy(tpd_keys_dim, keys_dim, keycnt * 4 * 4);
 }
-EXPORT_SYMBOL(tpd_button_setting);
-MODULE_LICENSE("GPL");
+
 /* #endif */

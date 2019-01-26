@@ -1,16 +1,3 @@
-/*
-* Copyright (C) 2016 MediaTek Inc.
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License version 2 as
-* published by the Free Software Foundation.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-* See http://www.gnu.org/licenses/gpl-2.0.html for more details.
-*/
-
 #include <linux/vmalloc.h>
 #include <linux/uaccess.h>
 #include <linux/major.h>
@@ -74,14 +61,12 @@ module_param(tpd_fail_count, int, 0644);
 module_param(tpd_trial_count, int, 0644);
 
 int tpd_debug_time = 0;
-EXPORT_SYMBOL(tpd_debug_time);
 long tpd_last_2_int_time[2] = { 0 };
 
 long tpd_last_down_time = 0;
 int tpd_start_profiling = 0;
 
 int tpd_down_status = 0;
-EXPORT_SYMBOL(tpd_down_status);
 module_param(tpd_debug_time, int, 0644);
 
 void tpd_debug_set_time(void)
@@ -104,7 +89,6 @@ void tpd_debug_set_time(void)
 		tpd_last_down_time = tpd_last_2_int_time[1];
 	}
 }
-EXPORT_SYMBOL(tpd_debug_set_time);
 
 #ifdef TPD_DEBUG_TRACK
 int tpd_debug_track = 0;
@@ -153,7 +137,6 @@ void tpd_up_debug_track(int x, int y)
 #define BUFFER_SIZE 128
 
 int tpd_em_log = 0;
-EXPORT_SYMBOL(tpd_em_log);
 module_param(tpd_em_log, int, 0664);
 
 void tpd_enable_em_log(int enable)
@@ -167,7 +150,6 @@ EXPORT_SYMBOL(tpd_enable_em_log);
 
 
 int tpd_em_log_to_fs = 0;
-EXPORT_SYMBOL(tpd_em_log_to_fs);
 module_param(tpd_em_log_to_fs, int, 0664);
 
 int tpd_em_log_first = 1;
@@ -259,17 +241,14 @@ struct tpd_debug_log_buf tpd_buf;
 
 static int tpd_debug_log_open(struct inode *inode, struct file *file)
 {
-	if (tpd_buf.buffer == NULL)
-		tpd_buf.buffer = vmalloc(tpd_log_line_cnt * tpd_log_line_buffer);
+	memset(&tpd_buf, 0, sizeof(struct tpd_debug_log_buf));
+	tpd_buf.buffer = vmalloc(tpd_log_line_cnt * tpd_log_line_buffer);
 	if (tpd_buf.buffer == NULL) {
 		pr_err("tpd_log: nomem for tpd_buf->buffer\n");
 		return -ENOMEM;
 	}
-	spin_lock(&tpd_buf.buffer_lock);
 	tpd_buf.head = tpd_buf.tail = 0;
-	tpd_buf.cnt = 0;
-	spin_unlock(&tpd_buf.buffer_lock);
-
+	spin_lock_init(&tpd_buf.buffer_lock);
 
 	file->private_data = &tpd_buf;
 	pr_debug("[tpd_em_log]: open log file\n");
@@ -281,8 +260,6 @@ static int tpd_debug_log_release(struct inode *inode, struct file *file)
 	/* struct tpd_debug_log_buf *tpd_buf = (tpd_debug_log_buf *)file->private_data; */
 	pr_debug("[tpd_em_log]: close log file\n");
 	vfree(tpd_buf.buffer);
-	tpd_buf.buffer = NULL;
-	file->private_data = NULL;
 	/* free(tpd_buf); */
 	return 0;
 }
@@ -296,29 +273,25 @@ static ssize_t tpd_debug_log_write(struct file *file, const char __user *buffer,
 static ssize_t tpd_debug_log_read(struct file *file, char __user *buffer,
 				  size_t count, loff_t *ppos)
 {
-	struct tpd_debug_log_buf *l_tpd_buf = (struct tpd_debug_log_buf *)file->private_data;
+	struct tpd_debug_log_buf *tpd_buf = (struct tpd_debug_log_buf *)file->private_data;
 	unsigned int retval = 0, unit = tpd_log_line_buffer;
 	unsigned char *tmp_buf = NULL;
 
-	if ((l_tpd_buf == NULL) || (l_tpd_buf != &tpd_buf)) {
-		pr_debug("[tpd_em_log]: not open file before read\n");
-		return -ENOMEM;
-	}
-	if (l_tpd_buf->head == l_tpd_buf->tail && (file->f_flags & O_NONBLOCK))
+	if (tpd_buf->head == tpd_buf->tail && (file->f_flags & O_NONBLOCK))
 		return -EAGAIN;
 
 
 	while ((count - retval) >= unit) {
-		spin_lock_irq(&l_tpd_buf->buffer_lock);
-		if (l_tpd_buf->head != l_tpd_buf->tail) {
-			tmp_buf = &l_tpd_buf->buffer[l_tpd_buf->tail++ * unit];
-			l_tpd_buf->tail &= tpd_log_line_cnt - 1;
+		spin_lock_irq(&tpd_buf->buffer_lock);
+		if (tpd_buf->head != tpd_buf->tail) {
+			tmp_buf = &tpd_buf->buffer[tpd_buf->tail++ * unit];
+			tpd_buf->tail &= tpd_log_line_cnt - 1;
 		} else {
 			/* printk("*******************tpd_debug_log is empty ****************\n"); */
-			spin_unlock_irq(&l_tpd_buf->buffer_lock);
+			spin_unlock_irq(&tpd_buf->buffer_lock);
 			break;
 		}
-		spin_unlock_irq(&l_tpd_buf->buffer_lock);
+		spin_unlock_irq(&tpd_buf->buffer_lock);
 		/* printk("%s, tmp_buf:0x%x\n", tmp_buf, tmp_buf); */
 		if (copy_to_user(buffer + retval, tmp_buf, unit))
 			return -EFAULT;
@@ -375,7 +348,7 @@ noinline void MET_touch(int raw_x, int raw_y, int cal_x, int cal_y, int p, int d
 
 	do_gettimeofday(&t);
 	if ((tpd_down_status == 0 && down == 1) || (tpd_down_status == 1 && down == 0)) {
-		trace_MET_touch("EV_KEY", t.tv_sec, t.tv_usec, "BTN_TOUCH", down);
+		trace_MET_touch("EV_EKY", t.tv_sec, t.tv_usec, "BIT_TOUCH", down);
 		tpd_down_status = !tpd_down_status;
 	}
 	if (tpd_down_status) {
@@ -383,7 +356,7 @@ noinline void MET_touch(int raw_x, int raw_y, int cal_x, int cal_y, int p, int d
 		trace_MET_touch("EV_ABS", t.tv_sec, t.tv_usec, "Y", raw_y);
 	}
 }
-EXPORT_SYMBOL(MET_touch);
+
 void tpd_em_log_output(int raw_x, int raw_y, int cal_x, int cal_y, int p, int down)
 {
 	if (down == TPD_TYPE_INT_DOWN) {
@@ -419,7 +392,6 @@ void tpd_em_log_output(int raw_x, int raw_y, int cal_x, int cal_y, int p, int do
 		       (tpd_last_2_int_time[1] - tpd_last_2_int_time[0]) / 1000);
 	}
 }
-EXPORT_SYMBOL(tpd_em_log_output);
 
 void tpd_em_log_store(int raw_x, int raw_y, int cal_x, int cal_y, int p, int down)
 {
@@ -498,7 +470,6 @@ void tpd_em_log_store(int raw_x, int raw_y, int cal_x, int cal_y, int p, int dow
 
 	/* list_add_tail(&tpd_em_log_struct_new->list, &tpd_em_log_list); */
 }
-EXPORT_SYMBOL(tpd_em_log_store);
 
 void tpd_em_log_release(void)
 {
@@ -516,7 +487,6 @@ void tpd_em_log_release(void)
 		tpd_em_log_to_fs = 0;
 	}
 }
-EXPORT_SYMBOL(tpd_em_log_release);
 
 static int __init tpd_log_init(void)
 {
@@ -525,12 +495,10 @@ static int __init tpd_log_init(void)
 		return -1;
 	}
 	pr_warn("[tpd_em_log] :register device successfully\n");
-	spin_lock_init(&tpd_buf.buffer_lock);
 	return 0;
 }
 
 int tpd_debuglog = 0;
 module_param(tpd_debuglog, int, 0664);
 module_init(tpd_log_init);
-MODULE_LICENSE("GPL");
 #endif				/* TPD_DEBUG_CODE */

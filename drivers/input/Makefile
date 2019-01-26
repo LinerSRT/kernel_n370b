@@ -3,8 +3,6 @@
 #
 
 # Each configuration option enables a list of files.
-
-subdir-ccflags-y += -Werror
 obj-$(CONFIG_INPUT)		+= input-core.o
 input-core-y := input.o input-compat.o input-mt.o ff-core.o
 
