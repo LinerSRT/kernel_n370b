@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 /*****************************************************************************
  *
  * Filename:
@@ -724,8 +711,8 @@ S5K4ECGX_MIPI_AE_Set_Window(
     S5K4ECGX_Driver.apAEWindows[1] = y0;
     S5K4ECGX_Driver.apAEWindows[2] = x1;
     S5K4ECGX_Driver.apAEWindows[3] = y1;
-	S5K4ECGX_Driver.apAEWindows[4] = width;
-	S5K4ECGX_Driver.apAEWindows[5] = height;
+    S5K4ECGX_Driver.apAEWindows[5] = width;
+    S5K4ECGX_Driver.apAEWindows[6] = height;
     spin_unlock(&s5k4ecgx_mipi_drv_lock);
 
 

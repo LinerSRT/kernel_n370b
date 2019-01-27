@@ -1,19 +1,22 @@
-/*
- * Copyright (C) 2017 MediaTek Inc.
+/*****************************************************************************
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Filename:
+ * ---------
+ *	 OV8856mipi_Sensor.h
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
+ * Project:
+ * --------
+ *	 ALPS
+ *	PengtaoFan
+ * Description:
+ * ------------
+ *	 CMOS sensor header file
+ *
+ ****************************************************************************/
 #ifndef _OV8856MIPI_SENSOR_H
 #define _OV8856MIPI_SENSOR_H
 
-//卤铆脢戮sensor碌脛录赂脰脰鹿陇脳梅脛拢脢陆脳麓脤卢拢潞init preview capture video hvideo svideo
+//表示sensor的几种工作模式状态：init preview capture video hvideo svideo
 typedef enum{
 	IMGSENSOR_MODE_INIT,
 	IMGSENSOR_MODE_PREVIEW,
@@ -23,7 +26,7 @@ typedef enum{
 	IMGSENSOR_MODE_SLIM_VIDEO,
 } IMGSENSOR_MODE;
 
-//卤铆脢戮录赂脰脰拢篓虏禄脥卢鹿陇脳梅脛拢脢陆脳麓脤卢脧脗拢漏碌脛sensor虏脦脢媒脨脜脧垄
+//表示几种（不同工作模式状态下）的sensor参数信息
 typedef struct imgsensor_mode_struct {
 	kal_uint32 pclk;				//record different mode's pclk
 	kal_uint32 linelength;			//record different mode's linelength
@@ -43,7 +46,7 @@ typedef struct imgsensor_mode_struct {
 	
 } imgsensor_mode_struct;
 
-//卤铆脢戮拢篓碌卤脟掳脳麓脤卢鹿陇脳梅脛拢脢陆拢漏脧脗碌脛sensor虏脦脢媒脨脜脧垄
+//表示（当前状态工作模式）下的sensor参数信息
 /* SENSOR PRIVATE STRUCT FOR VARIABLES*/
 typedef struct imgsensor_struct {
 	kal_uint8 mirror;				//mirrorflip information
@@ -71,7 +74,7 @@ typedef struct imgsensor_struct {
 	kal_uint8 i2c_write_id;			//record current sensor's i2c write id
 } imgsensor_struct;
 
-//sensor禄霉卤戮脨脜脧垄拢卢datasheet脡脧碌脛脨脜脧垄
+//sensor基本信息，datasheet上的信息
 /* SENSOR PRIVATE STRUCT FOR CONSTANT*/
 typedef struct imgsensor_info_struct { 
 	kal_uint16 sensor_id;			//record sensor id defined in Kd_imgsensor.h
@@ -119,6 +122,5 @@ typedef struct imgsensor_info_struct {
 
 extern int iReadRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u8 * a_pRecvData, u16 a_sizeRecvData, u16 i2cId);
 extern int iWriteRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u16 i2cId);
-extern void kdSetI2CSpeed(u32 i2cSpeed); 
 
 #endif 

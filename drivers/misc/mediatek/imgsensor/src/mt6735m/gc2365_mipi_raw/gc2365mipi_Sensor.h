@@ -1,19 +1,25 @@
-/*
- * Copyright (C) 2017 MediaTek Inc.
+/*****************************************************************************
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Filename:
+ * ---------
+ *     GC2365mipi_Sensor.h
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-#define IMAGE_NO_MIRROR 
+ * Project:
+ * --------
+ *     ALPS
+ *
+ * Description:
+ * ------------
+ *     CMOS sensor header file
+ *
+ ****************************************************************************/
+#ifdef VANZO_IMGSENSOR_GC2365_ROTATION
+#define IMAGE_NO_MIRROR
+#else
 //#define IMAGE_H_MIRROR 
 //#define IMAGE_V_MIRROR 
-//#define IMAGE_HV_MIRROR 
+#define IMAGE_HV_MIRROR 
+#endif
 
 #ifdef IMAGE_NO_MIRROR
 #define MIRROR 0xc0
@@ -38,6 +44,7 @@
 #define STARTY 0x02
 #define STARTX 0x05
 #endif
+
 #ifndef _GC2365MIPI_SENSOR_H
 #define _GC2365MIPI_SENSOR_H
 
@@ -141,6 +148,5 @@ typedef struct imgsensor_info_struct {
 extern int iReadRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u8 * a_pRecvData, u16 a_sizeRecvData, u16 i2cId);
 extern int iWriteRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u16 i2cId);
 extern int iWriteReg(u16 a_u2Addr , u32 a_u4Data , u32 a_u4Bytes , u16 i2cId); 
-extern void kdSetI2CSpeed(u32 i2cSpeed); 
 
 #endif

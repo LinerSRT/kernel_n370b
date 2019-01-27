@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 #include <linux/videodev2.h>
 #include <linux/i2c.h>
 #include <linux/platform_device.h>
@@ -64,7 +51,6 @@
 #define camera_info_size 128
 #define PDAF_DATA_SIZE 4096
 char mtk_ccm_name[camera_info_size] = { 0 };
-#define FEATURE_CONTROL_MAX_DATA_SIZE 128000
 
 static unsigned int gDrvIndex;
 
@@ -99,6 +85,13 @@ static struct i2c_board_info i2c_devs2 __initdata = {I2C_BOARD_INFO(CAMERA_HW_DR
 	struct regulator *regVCAMIO = NULL;
 	struct regulator *regVCAMAF = NULL;
 	struct regulator *regSubVCAMD = NULL;
+        //add by vanzo qingzhan begin
+	struct regulator *regSubVCAMA = NULL;
+	struct regulator *regSubVCAMIO = NULL;
+	struct regulator *regMain2VCAMA = NULL;
+	struct regulator *regMain2VCAMD = NULL;
+	struct regulator *regMain2VCAMIO = NULL;
+        //add by vanzo qingzhan end 
 #endif
 
 struct device *sensor_device = NULL;
@@ -435,7 +428,6 @@ int iReadRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u8 *a_pRecvData, u16 a_siz
 	}
 	return 0;
 }
-EXPORT_SYMBOL(iReadRegI2C);
 
 
 /*******************************************************************************
@@ -525,7 +517,6 @@ void kdSetI2CSpeed(u32 i2cSpeed)
 	}
 
 }
-EXPORT_SYMBOL(kdSetI2CSpeed);
 
 /*******************************************************************************
 * kdReleaseI2CTriggerLock
@@ -714,7 +705,6 @@ int iWriteRegI2C(u8 *a_pSendData, u16 a_sizeSendData, u16 i2cId)
 	/* KD_IMGSENSOR_PROFILE("iWriteRegI2C"); */
 	return 0;
 }
-EXPORT_SYMBOL(iWriteRegI2C);
 
 /*******************************************************************************
 * sensor function adapter
@@ -1316,9 +1306,7 @@ int kdSensorSyncFunctionPtr(void)
 	/* if the delay frame is 0 or 0xFF, stop to count */
 	if ((g_NewSensorExpGain.uISPGainDelayFrame != 0xFF)
 	    && (g_NewSensorExpGain.uISPGainDelayFrame != 0)) {
-		spin_lock(&kdsensor_drv_lock);
 		g_NewSensorExpGain.uISPGainDelayFrame--;
-		spin_unlock(&kdsensor_drv_lock);
 	}
 	mutex_unlock(&kdCam_Mutex);
 	return 0;
@@ -1381,6 +1369,33 @@ int kdSetExpGain(CAMERA_DUAL_CAMERA_SENSOR_ENUM InvokeCamera)
 
 }
 
+/*******************************************************************************
+*
+********************************************************************************/
+static UINT32 ms_to_jiffies(MUINT32 ms)
+{
+	return ((ms * HZ + 512) >> 10);
+}
+
+
+int kdSensorSetExpGainWaitDone(int *ptime)
+{
+	int timeout;
+
+	PK_DBG("[kd_sensorlist]enter kdSensorSetExpGainWaitDone: time: %d\n", *ptime);
+	timeout = wait_event_interruptible_timeout(kd_sensor_wait_queue,
+						   (setExpGainDoneFlag & 1), ms_to_jiffies(*ptime));
+
+	PK_DBG("[kd_sensorlist]after wait_event_interruptible_timeout\n");
+	if (timeout == 0) {
+		PK_ERR("[kd_sensorlist] kdSensorSetExpGainWait: timeout=%d\n", *ptime);
+
+		return -EAGAIN;
+	}
+
+	return 0;		/* No error. */
+
+}
 
 
 
@@ -1473,15 +1488,31 @@ static inline int adopt_CAMERA_HW_CheckIsAlive(void)
 				} else {
 
 					PK_DBG(" Sensor found ID = 0x%x\n", sensorID);
-					snprintf(mtk_ccm_name + strlen(mtk_ccm_name),
-						 sizeof(mtk_ccm_name) - strlen(mtk_ccm_name),
-						 " CAM[%d]:%s;", g_invokeSocketIdx[i], g_invokeSensorNameStr[i]);
+					snprintf(mtk_ccm_name, sizeof(mtk_ccm_name),
+						 "%s CAM[%d]:%s;", mtk_ccm_name,
+						 g_invokeSocketIdx[i], g_invokeSensorNameStr[i]);
 					err = ERROR_NONE;
 				}
 				if (ERROR_NONE != err) {
 					PK_DBG
 					    ("ERROR:adopt_CAMERA_HW_CheckIsAlive(), No imgsensor alive\n");
 				}
+/* Vanzo:maxiaojun on: Mon, 26 Aug 2013 17:04:18 +0800
+ * board device name support.
+ */
+#ifdef VANZO_DEVICE_NAME_SUPPORT
+        {
+          extern void v_set_dev_name(int id, char *name);
+          if(ERROR_NONE == err){
+            if(DUAL_CAMERA_MAIN_SENSOR==g_invokeSocketIdx[i]){
+              v_set_dev_name(3, (char *)g_invokeSensorNameStr[i]);
+            }else if(DUAL_CAMERA_SUB_SENSOR==g_invokeSocketIdx[i]){
+              v_set_dev_name(4, (char *)g_invokeSensorNameStr[i]);
+            }
+          }
+        }
+#endif
+// End of Vanzo:maxiaojun
 			}
 		}
 	} else {
@@ -1489,8 +1520,7 @@ static inline int adopt_CAMERA_HW_CheckIsAlive(void)
 	}
 
 	/* reset sensor state after power off */
-    if (g_pSensorFunc)
-	    err1 = g_pSensorFunc->SensorClose();
+	err1 = g_pSensorFunc->SensorClose();
 	if (ERROR_NONE != err1) {
 		PK_DBG("SensorClose\n");
 	}
@@ -1616,24 +1646,22 @@ MSDK_SENSOR_INFO_STRUCT ginfo1[2];
 MSDK_SENSOR_INFO_STRUCT ginfo2[2];
 MSDK_SENSOR_INFO_STRUCT ginfo3[2];
 MSDK_SENSOR_INFO_STRUCT ginfo4[2];
-MSDK_SENSOR_INFO_STRUCT *pInfo[2];
-MSDK_SENSOR_CONFIG_STRUCT config[2], *pConfig[2];
-MSDK_SENSOR_INFO_STRUCT *pInfo1[2];
-MSDK_SENSOR_CONFIG_STRUCT config1[2], *pConfig1[2];
-MSDK_SENSOR_INFO_STRUCT *pInfo2[2];
-MSDK_SENSOR_CONFIG_STRUCT config2[2], *pConfig2[2];
-MSDK_SENSOR_INFO_STRUCT *pInfo3[2];
-MSDK_SENSOR_CONFIG_STRUCT config3[2], *pConfig3[2];
-MSDK_SENSOR_INFO_STRUCT *pInfo4[2];
-MSDK_SENSOR_CONFIG_STRUCT config4[2], *pConfig4[2];
-
 /* adopt_CAMERA_HW_GetInfo() */
 inline static int adopt_CAMERA_HW_GetInfo2(void *pBuf)
 {
 	IMAGESENSOR_GETINFO_STRUCT *pSensorGetInfo = (IMAGESENSOR_GETINFO_STRUCT *) pBuf;
 	ACDK_SENSOR_INFO2_STRUCT SensorInfo = { 0 };
 	MUINT32 IDNum = 0;
-
+	MSDK_SENSOR_INFO_STRUCT *pInfo[2];
+	MSDK_SENSOR_CONFIG_STRUCT config[2], *pConfig[2];
+	MSDK_SENSOR_INFO_STRUCT *pInfo1[2];
+	MSDK_SENSOR_CONFIG_STRUCT config1[2], *pConfig1[2];
+	MSDK_SENSOR_INFO_STRUCT *pInfo2[2];
+	MSDK_SENSOR_CONFIG_STRUCT config2[2], *pConfig2[2];
+	MSDK_SENSOR_INFO_STRUCT *pInfo3[2];
+	MSDK_SENSOR_CONFIG_STRUCT config3[2], *pConfig3[2];
+	MSDK_SENSOR_INFO_STRUCT *pInfo4[2];
+	MSDK_SENSOR_CONFIG_STRUCT config4[2], *pConfig4[2];
 	MSDK_SENSOR_RESOLUTION_INFO_STRUCT SensorResolution[2], *psensorResolution[2];
 
 	MUINT32 ScenarioId[2], *pScenarioId[2];
@@ -1947,11 +1975,6 @@ static inline int  adopt_CAMERA_HW_FeatureControl(void *pBuf)
 		PK_ERR(" ioctl copy from user failed\n");
 		return -EFAULT;
 	}
-	/* data size exam */
-	if (FeatureParaLen > FEATURE_CONTROL_MAX_DATA_SIZE) {
-		PK_ERR(" exceed data size limitation\n");
-		return -EFAULT;
-	}
 
 	pFeaturePara = kmalloc(FeatureParaLen, GFP_KERNEL);
 	if (NULL == pFeaturePara) {
@@ -2024,7 +2047,6 @@ static inline int  adopt_CAMERA_HW_FeatureControl(void *pBuf)
 		if (copy_from_user
 		    ((void *)pFeaturePara, (void *)pFeatureCtrl->pFeaturePara, FeatureParaLen)) {
 			PK_DBG("[CAMERA_HW][pFeaturePara] ioctl copy from user failed\n");
-			kfree(pFeaturePara);
 			return -EFAULT;
 		}
 		/* keep the information to wait Vsync synchronize */
@@ -2039,7 +2061,6 @@ static inline int  adopt_CAMERA_HW_FeatureControl(void *pBuf)
 		g_NewSensorExpGain.uSensorExpDelayFrame = pSensorSyncInfo->uSensorExpDelayFrame;
 		g_NewSensorExpGain.uSensorGainDelayFrame = pSensorSyncInfo->uSensorGainDelayFrame;
 		g_NewSensorExpGain.uISPGainDelayFrame = pSensorSyncInfo->uISPGainDelayFrame;
-		spin_unlock(&kdsensor_drv_lock);
 		/* AE smooth not change shutter to speed up */
 		if ((0 == g_NewSensorExpGain.u2SensorNewExpTime)
 		    || (0xFFFF == g_NewSensorExpGain.u2SensorNewExpTime)) {
@@ -2072,9 +2093,7 @@ static inline int  adopt_CAMERA_HW_FeatureControl(void *pBuf)
 		/* if the delay frame is 0 or 0xFF, stop to count */
 		if ((g_NewSensorExpGain.uISPGainDelayFrame != 0xFF)
 		    && (g_NewSensorExpGain.uISPGainDelayFrame != 0)) {
-			spin_lock(&kdsensor_drv_lock);
 			g_NewSensorExpGain.uISPGainDelayFrame--;
-			spin_unlock(&kdsensor_drv_lock);
 		}
 
 
@@ -2838,68 +2857,76 @@ static inline int kdSetSensorGpio(int *pBuf)
 }
 
 
+// modify by vanzo qingzhan begin
 #if !defined(CONFIG_MTK_LEGACY)
 bool Get_Cam_Regulator(void)
 {
-	const char *name = NULL;
+	/*int ret;*/
+	struct regulator *name = NULL;
 	struct device_node *node = NULL, *kd_node;
 
 	if (1) {
 		/* check if customer camera node defined */
 		node = of_find_compatible_node(NULL, NULL, "mediatek,camera_hw");
 		if (node) {
-			name = of_get_property(node, "vcama_sub", NULL);
+			/* name = of_get_property(node, "MAIN_CAMERA_POWER_A", NULL); */
+			 name = regulator_get(sensor_device, "vcama_sub"); /*check customer definition*/
 			if (name == NULL) {
-				if (regVCAMA == NULL) {
-					regVCAMA = regulator_get(sensor_device, "vcama");
+			    if (regVCAMA == NULL) {
+				    regVCAMA = regulator_get(sensor_device, "vcama");
+			    }
+			    if (regVCAMD == NULL) {
+				    regVCAMD = regulator_get(sensor_device, "vcamd");
+			    }
+			    if (regVCAMIO == NULL) {
+				    regVCAMIO = regulator_get(sensor_device, "vcamio");
 				}
-				if (regVCAMD == NULL) {
-					regVCAMD = regulator_get(sensor_device, "vcamd");
-				}
-				if (regVCAMIO == NULL) {
-					regVCAMIO = regulator_get(sensor_device, "vcamio");
-				}
-				if (regVCAMAF == NULL) {
-					regVCAMAF = regulator_get(sensor_device, "vcamaf");
-				}
-			} else {
-				PK_DBG("Camera customer regulator name =%s!\n", name);
+			    if (regVCAMAF == NULL) {
+				    regVCAMAF = regulator_get(sensor_device, "vcamaf");
+			    }
+			} else{
+				PK_DBG("Camera customer regulator!\n");
 				/* backup original dev.of_node */
 				kd_node = sensor_device->of_node;
 				/* if customer defined, get customized camera regulator node */
-				sensor_device->of_node =
-				    of_find_compatible_node(NULL, NULL,
-							    "mediatek,camera_hw");
-				/* 若你需要sub也定義的話，需要自己加上
-				   if (regVCAMA == NULL) {
-				   regVCAMA_SUB = regulator_get(sensor_device, "SUB_CAMERA_POWER_A");
-				   }
-				 */
-				if (regVCAMA == NULL) {
-					regVCAMA =
-					    regulator_get(sensor_device, "vcama");
-				}
-				if (regVCAMD == NULL) {
-					regVCAMD =
-					    regulator_get(sensor_device, "vcamd");
-				}
+				sensor_device->of_node = of_find_compatible_node(NULL, NULL, "mediatek,camera_hw");
+
+			    if (regVCAMA == NULL) {
+				    regVCAMA = regulator_get(sensor_device, "vcama");
+			    }
+				if (regSubVCAMA == NULL) {
+				    regSubVCAMA = regulator_get(sensor_device, "vcama_sub");
+			    }
+				if (regMain2VCAMA == NULL) {
+				    regMain2VCAMA = regulator_get(sensor_device, "vcama_main2");
+			    }
+			    if (regVCAMD == NULL) {
+				    regVCAMD = regulator_get(sensor_device, "vcamd");
+			    }
 				if (regSubVCAMD == NULL) {
-					regSubVCAMD =
-					    regulator_get(sensor_device, "vcamd_sub");
-				}
-				if (regVCAMIO == NULL) {
-					regVCAMIO =
-					    regulator_get(sensor_device, "vcamio");
-				}
-				if (regVCAMAF == NULL) {
-					regVCAMAF =
-					    regulator_get(sensor_device, "vcamaf");
-				}
-				/* restore original dev.of_node */
-				sensor_device->of_node = kd_node;
+				    regSubVCAMD = regulator_get(sensor_device, "vcamd_sub");
+			    }
+				if (regMain2VCAMD == NULL) {
+				    regMain2VCAMD = regulator_get(sensor_device, "vcamd_main2");
+			    }
+			    if (regVCAMIO == NULL) {
+				    regVCAMIO = regulator_get(sensor_device, "vcamio");
+			    }
+			    if (regSubVCAMIO == NULL) {
+				    regSubVCAMIO = regulator_get(sensor_device, "vcamio_sub");
+			    }
+				if (regMain2VCAMIO == NULL) {
+				    regMain2VCAMIO = regulator_get(sensor_device, "vcamio_main2");
+			    }
+			    if (regVCAMAF == NULL) {
+				    regVCAMAF = regulator_get(sensor_device, "vcamaf");
+			    }
+
+			    /* restore original dev.of_node */
+			    sensor_device->of_node = kd_node;
 			}
-		} else {
-			PK_DBG("regulator get cust camera node failed!\n");
+		} else{
+			PK_ERR("regulator get cust camera node failed!\n");
 			return FALSE;
 		}
 
@@ -2909,59 +2936,81 @@ bool Get_Cam_Regulator(void)
 }
 
 
-bool _hwPowerOn(KD_REGULATOR_TYPE_T type, int powerVolt)
+bool _hwPowerOn(PowerType type, int powerVolt)
 {
 	bool ret = FALSE;
 	struct regulator *reg = NULL;
 
-	if (type == VCAMA) {
-		reg = regVCAMA;
-	} else if (type == VCAMD) {
-		reg = regVCAMD;
-	} else if (type == VCAMIO) {
-		reg = regVCAMIO;
-	} else if (type == VCAMAF) {
-		reg = regVCAMAF;
-	} else
-		return ret;
+    PK_DBG("[_hwPowerOn]powertype:%d powerId:%d\n", type, powerVolt);
+    if (type == AVDD) {
+	reg = regVCAMA;
+    } else if (type == DVDD) {
+	reg = regVCAMD;
+    } else if (type == DOVDD) {
+	reg = regVCAMIO;
+    } else if (type == AFVDD) {
+	reg = regVCAMAF;
+    }else if (type == SUB_AVDD) {
+	reg = regSubVCAMA;
+    } else if (type == SUB_DVDD) {
+	reg = regSubVCAMD;
+    } else if (type == SUB_DOVDD) {
+	reg = regSubVCAMIO;
+    } else if (type == MAIN2_AVDD) {
+	reg = regMain2VCAMA;
+    } else if (type == MAIN2_DVDD) {
+	reg = regMain2VCAMD;
+    } else if (type == MAIN2_DOVDD) {
+	reg = regMain2VCAMIO;
+    }else
+    	return ret;
 
-	if (reg != NULL && !IS_ERR(reg)) {
-		if (regulator_set_voltage(reg, powerVolt, powerVolt) != 0) {
-			PK_DBG
-			    ("[_hwPowerOn]fail to regulator_set_voltage, powertype:%d powerId:%d\n",
-			     type, powerVolt);
+	if (!IS_ERR(reg)) {
+		if (regulator_set_voltage(reg , powerVolt, powerVolt) != 0) {
+			PK_DBG("[_hwPowerOn]fail to regulator_set_voltage, powertype:%d powerId:%d\n", type, powerVolt);
 			return ret;
-		}
+	}
 		if (regulator_enable(reg) != 0) {
-			PK_DBG("[_hwPowerOn]fail to regulator_enable, powertype:%d powerId:%d\n",
-			       type, powerVolt);
-			return ret;
-		}
-		ret = true;
-	} else {
-		PK_DBG("[_hwPowerOn]IS_ERR_OR_NULL powertype:%d\n", type);
+			PK_DBG("[_hwPowerOn]fail to regulator_enable, powertype:%d powerId:%d\n", type, powerVolt);
+	    return ret;
+	}
+	ret = true;
+    } else {
+		PK_ERR("[_hwPowerOn]IS_ERR_OR_NULL powertype:%d reg %p\n", type,reg);
 		return ret;
 	}
 
 	return ret;
 }
-EXPORT_SYMBOL(_hwPowerOn);
 
-bool _hwPowerDown(KD_REGULATOR_TYPE_T type)
+bool _hwPowerDown(PowerType type)
 {
 	bool ret = FALSE;
 	struct regulator *reg = NULL;
+	PK_DBG("[_hwPowerDown]powertype:%d\n", type);
 
-	if (type == VCAMA) {
-		reg = regVCAMA;
-	} else if (type == VCAMD) {
-		reg = regVCAMD;
-	} else if (type == VCAMIO) {
-		reg = regVCAMIO;
-	} else if (type == VCAMAF) {
-		reg = regVCAMAF;
-	} else
-		return ret;
+    if (type == AVDD) {
+	reg = regVCAMA;
+    } else if (type == DVDD) {
+	reg = regVCAMD;
+    } else if (type == DOVDD) {
+	reg = regVCAMIO;
+    } else if (type == AFVDD) {
+	reg = regVCAMAF;
+    }else if (type == SUB_AVDD) {
+	reg = regSubVCAMA;
+    } else if (type == SUB_DVDD) {
+	reg = regSubVCAMD;
+    } else if (type == SUB_DOVDD) {
+	reg = regSubVCAMIO;
+    } else if (type == MAIN2_AVDD) {
+	reg = regMain2VCAMA;
+    } else if (type == MAIN2_DVDD) {
+	reg = regMain2VCAMD;
+    } else if (type == MAIN2_DOVDD) {
+	reg = regMain2VCAMIO;
+    }else
+    	return ret;
 
 	if (!IS_ERR(reg)) {
 		if (regulator_is_enabled(reg) != 0) {
@@ -2978,8 +3027,8 @@ bool _hwPowerDown(KD_REGULATOR_TYPE_T type)
 	}
 	return ret;
 }
-EXPORT_SYMBOL(_hwPowerDown);
 #endif
+// modify by vanzo qingzhan end
 
 #ifdef CONFIG_COMPAT
 
@@ -3413,6 +3462,7 @@ static long CAMERA_HW_Ioctl(struct file *a_pstFile,
 		break;
 
 	case KDIMGSENSORIOC_X_SET_SHUTTER_GAIN_WAIT_DONE:
+		i4RetValue = kdSensorSetExpGainWaitDone((int *)pBuff);
 		break;
 
 	case KDIMGSENSORIOC_X_SET_CURRENT_SENSOR:
@@ -3623,7 +3673,7 @@ static int CAMERA_HW_i2c_probe(struct i2c_client *client, const struct i2c_devic
 	spin_lock(&kdsensor_drv_lock);
 	g_pstI2Cclient = client;
 	/* set I2C clock rate */
-	g_pstI2Cclient->timing = 200;	/* 100k */
+	g_pstI2Cclient->timing = 100;	/* 100k */
 	g_pstI2Cclient->ext_flag &= ~I2C_POLLING_FLAG;	/* No I2C polling busy waiting */
 
 	spin_unlock(&kdsensor_drv_lock);
@@ -4186,7 +4236,7 @@ static ssize_t CAMERA_HW_Reg_Debug(struct file *file, const char *buffer, size_t
 		}
 	} else
 	    if (sscanf
-		(regBuf, "%31s %31s %d %x", debugSensor.debugStruct, debugSensor.debugSubstruct,
+		(regBuf, "%s %s %d %x", debugSensor.debugStruct, debugSensor.debugSubstruct,
 		 &debugSensor.isGet, &debugSensor.value) == 4) {
 		if (g_pSensorFunc != NULL) {
 			g_pSensorFunc->SensorFeatureControl(DUAL_CAMERA_MAIN_SENSOR,
