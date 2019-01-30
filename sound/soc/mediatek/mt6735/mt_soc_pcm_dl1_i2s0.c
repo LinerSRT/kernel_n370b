@@ -1,19 +1,17 @@
 /*
- * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2007 The Android Open Source Project
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program
- * If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 /*******************************************************************************
  *
@@ -77,9 +75,9 @@ static int mi2s0_sidegen_control;
 static int mi2s0_hdoutput_control;
 static int mi2s0_extcodec_echoref_control;
 static const char const *i2s0_SIDEGEN[] = {
-	"Off", "On8000", "On16000", "On32000", "On44100", "On48000", "On96000", "On192000"};
+	"Off", "On48000", "On44100", "On32000", "On16000", "On8000" };
 static const char const *i2s0_HD_output[] = {"Off", "On"};
-static const char const *i2s0_ExtCodec_EchoRef[] = {"Off", "MD1", "MD3"};
+static const char const *i2s0_ExtCodec_EchoRef[] = {"Off", "On"};
 
 static const struct soc_enum Audio_i2s0_Enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(i2s0_SIDEGEN), i2s0_SIDEGEN),
@@ -98,89 +96,44 @@ static int Audio_i2s0_SideGen_Get(struct snd_kcontrol *kcontrol,
 static int Audio_i2s0_SideGen_Set(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	int samplerate = 0;
+	uint32 u32AudioI2S = 0;	/* REG448 = 0, REG44C = 0; */
+	uint32 samplerate = 0;
 	uint32 Audio_I2S_Dac = 0;
-	uint32 u32AudioI2S = 0;
 
+	AudDrv_Clk_On();
+
+	pr_debug
+	    ("%s() samplerate = %d, mi2s0_hdoutput_control = %d, mi2s0_extcodec_echoref_control = %d\n",
+	     __func__, samplerate, mi2s0_hdoutput_control, mi2s0_extcodec_echoref_control);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(i2s0_SIDEGEN)) {
 		pr_err("return -EINVAL\n");
 		return -EINVAL;
 	}
 	mi2s0_sidegen_control = ucontrol->value.integer.value[0];
-
-	AudDrv_Clk_On();
-
-	pr_debug("%s(), sidegen = %d, hdoutput = %d, extcodec_echoref = %d\n",
-		 __func__, mi2s0_hdoutput_control, mi2s0_extcodec_echoref_control,
-		 mi2s0_sidegen_control);
-
 	if (mi2s0_sidegen_control == 1) {
-		samplerate = 8000;
+		samplerate = 48000;
 	} else if (mi2s0_sidegen_control == 2) {
-		samplerate = 16000;
+		samplerate = 44100;
 	} else if (mi2s0_sidegen_control == 3) {
 		samplerate = 32000;
 	} else if (mi2s0_sidegen_control == 4) {
-		samplerate = 44100;
+		samplerate = 16000;
+		/* here start digital part */
+		SetConnection(Soc_Aud_InterCon_Connection,
+			      Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O00);
+		SetConnection(Soc_Aud_InterCon_Connection,
+			      Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O01);
 	} else if (mi2s0_sidegen_control == 5) {
-		samplerate = 48000;
-	} else if (mi2s0_sidegen_control == 6) {
-		samplerate = 96000;
-	} else if (mi2s0_sidegen_control == 7) {
-		samplerate = 192000;
-	} else if (mi2s0_sidegen_control == 0) {
-		SetConnection(Soc_Aud_InterCon_DisConnect,
-			Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O00);
-		SetConnection(Soc_Aud_InterCon_DisConnect,
-			Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O01);
-		SetConnection(Soc_Aud_InterCon_DisConnect,
-			Soc_Aud_InterConnectionInput_I09, Soc_Aud_InterConnectionOutput_O00);
-		SetConnection(Soc_Aud_InterCon_DisConnect,
-			Soc_Aud_InterConnectionInput_I09, Soc_Aud_InterConnectionOutput_O01);
-
-		/* phone call echo reference connection disable: I1->024 && I1->O27 */
-		PRINTK_AUD_DL1("%s() InterCon  AFE_CONN9 I01 -> O24/O27 disable\n",  __func__);
-		SetConnection(Soc_Aud_InterCon_DisConnect,
-			Soc_Aud_InterConnectionInput_I01, Soc_Aud_InterConnectionOutput_O24);
-		SetConnection(Soc_Aud_InterCon_DisConnect,
-			Soc_Aud_InterConnectionInput_I01, Soc_Aud_InterConnectionOutput_O27);
-	} else {
-		samplerate = 48000;
-		pr_warn("Wrong sidegen_control input\n");
-	}
-
-	if (mi2s0_sidegen_control > 0) {
-		switch (mi2s0_extcodec_echoref_control) {
-		case 1:
-			/* MD1 connection */
-			SetConnection(Soc_Aud_InterCon_Connection,
-				Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O00);
-			SetConnection(Soc_Aud_InterCon_Connection,
-				Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O01);
-
-			/* phone call echo reference connection enable: I1 ->O24 */
-			PRINTK_AUD_DL1("%s() InterCon  AFE_CONN9 I01 -> O24 enable\n",  __func__);
-			SetConnection(Soc_Aud_InterCon_Connection,
-				Soc_Aud_InterConnectionInput_I01, Soc_Aud_InterConnectionOutput_O24);
-			break;
-		case 2:
-			/* MD3 connection */
-			SetConnection(Soc_Aud_InterCon_Connection,
-				Soc_Aud_InterConnectionInput_I09, Soc_Aud_InterConnectionOutput_O00);
-			SetConnection(Soc_Aud_InterCon_Connection,
-				Soc_Aud_InterConnectionInput_I09, Soc_Aud_InterConnectionOutput_O01);
-
-			/* phone call echo reference connection enable: I1 ->O27 */
-			PRINTK_AUD_DL1("%s() InterCon  AFE_CONN9 I01 -> O27 enable\n",  __func__);
-			SetConnection(Soc_Aud_InterCon_Connection,
-				Soc_Aud_InterConnectionInput_I01, Soc_Aud_InterConnectionOutput_O27);
-			break;
-		default:
-			break;
-		}
+		samplerate = 8000;
+		/* here start digital part */
+		SetConnection(Soc_Aud_InterCon_Connection,
+			      Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O00);
+		SetConnection(Soc_Aud_InterCon_Connection,
+			      Soc_Aud_InterConnectionInput_I14, Soc_Aud_InterConnectionOutput_O01);
 	}
 
 	if (mi2s0_sidegen_control) {
+		AudDrv_Clk_On();
 		EnableALLbySampleRate(samplerate);
 
 		if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2) == false) {
@@ -190,16 +143,16 @@ static int Audio_i2s0_SideGen_Set(struct snd_kcontrol *kcontrol,
 			    ("%s(), mi2s0_sidegen_control=%d, write AFE_I2S_CON (0x%x), AFE_I2S_CON3(0x%x)\n",
 			     __func__, mi2s0_sidegen_control, Audio_I2S_Dac, u32AudioI2S);
 			SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2, true);
-			if (mi2s0_extcodec_echoref_control > 0)
+			if (mi2s0_extcodec_echoref_control == true)
 				Afe_Set_Reg(AFE_I2S_CON, 0x0, 0x1);
 		}
 		Afe_Set_Reg(AFE_I2S_CON3, 0x0, 0x1);
 		udelay(20);
 
-		if (mi2s0_extcodec_echoref_control > 0)
+		if (mi2s0_extcodec_echoref_control == true)
 			Afe_Set_Reg(AUDIO_TOP_CON1, 0x2, 0x2);	/* I2S_SOFT_Reset  4 wire i2s mode */
 
-		if (mi2s0_extcodec_echoref_control > 0)
+		if (mi2s0_extcodec_echoref_control == true)
 			Afe_Set_Reg(AUDIO_TOP_CON1, 0x1 << 4,  0x1 << 4);  /* I2S0 clock-gated */
 
 		Afe_Set_Reg(AUDIO_TOP_CON1, 0x1 << 7,  0x1 << 7); /* I2S3 clock-gated */
@@ -207,8 +160,10 @@ static int Audio_i2s0_SideGen_Set(struct snd_kcontrol *kcontrol,
 		/*Afe_Set_Reg(AUDIO_TOP_CON1, (0x1 << 4) | (0x1 << 7),  (0x1 << 4)|  (0x1 << 7));*/
 		/* I2S0 I2S3 clock-gated */
 
-		if (mi2s0_extcodec_echoref_control > 0) {
-			Afe_Set_Reg(AFE_DAC_CON1, 0x400, 0xF00);
+		if (mi2s0_extcodec_echoref_control == true) {
+			SetConnection(Soc_Aud_InterCon_Connection,
+				      Soc_Aud_InterConnectionInput_I01,
+				      Soc_Aud_InterConnectionOutput_O24);
 
 			/* I2S0 Input Control */
 			Audio_I2S_Dac = 0;
@@ -239,31 +194,37 @@ static int Audio_i2s0_SideGen_Set(struct snd_kcontrol *kcontrol,
 
 		/* start I2S DAC out */
 
-		if (mi2s0_extcodec_echoref_control > 0)
+		if (mi2s0_extcodec_echoref_control == true)
 			Afe_Set_Reg(AFE_I2S_CON, Audio_I2S_Dac, MASK_ALL);	/* set I2S0 configuration */
 
 		Afe_Set_Reg(AFE_I2S_CON3, u32AudioI2S, AFE_MASK_ALL);	/* set I2S3 configuration */
 
-		if (mi2s0_extcodec_echoref_control > 0)
+		if (mi2s0_extcodec_echoref_control == true)
 			Afe_Set_Reg(AUDIO_TOP_CON1, 0 << 4,  0x1 << 4); /* Clear I2S0 clock-gated */
 		Afe_Set_Reg(AUDIO_TOP_CON1, 0 << 7,  0x1 << 7); /* Clear I2S3 clock-gated */
 		/*Afe_Set_Reg(AUDIO_TOP_CON1, (0x0 << 4) | (0x0 << 7),  (0x1 << 4)|  (0x1 << 7));*/
 		/* Clear I2S0 I2S3 clock-gated */
 
 		udelay(200);
-		if (mi2s0_extcodec_echoref_control > 0)
+		if (mi2s0_extcodec_echoref_control == true)
 			Afe_Set_Reg(AUDIO_TOP_CON1, 0, 0x2);	/* Clear I2S_SOFT_Reset  4 wire i2s mode */
-		if (mi2s0_extcodec_echoref_control > 0)
+		if (mi2s0_extcodec_echoref_control == true)
 			Afe_Set_Reg(AFE_I2S_CON, 0x1, 0x1);	/* Enable I2S0 */
 		Afe_Set_Reg(AFE_I2S_CON3, 0x1, 0x1);	/* Enable I2S3 */
 		EnableAfe(true);
 
 	} else {
+		if (mi2s0_extcodec_echoref_control == true) {
+			SetConnection(Soc_Aud_InterCon_Connection,
+				      Soc_Aud_InterConnectionInput_I01,
+				      Soc_Aud_InterConnectionOutput_O24);
+		}
+
 		SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2, false);
 
 		if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_2) == false) {
 			Afe_Set_Reg(AFE_I2S_CON3, 0x0, 0x1);	/* Disable I2S3 */
-			if (mi2s0_extcodec_echoref_control > 0)
+			if (mi2s0_extcodec_echoref_control == true)
 				Afe_Set_Reg(AFE_I2S_CON, 0x0, 0x1);	/* Disable I2S0 */
 
 			udelay(20);
@@ -271,9 +232,14 @@ static int Audio_i2s0_SideGen_Set(struct snd_kcontrol *kcontrol,
 			Afe_Set_Reg(AUDIO_TOP_CON1, 0x1 << 4, 0x1 << 4);	/* I2S0 clock-gated */
 			Afe_Set_Reg(AUDIO_TOP_CON1, 0x1 << 7, 0x1 << 7);	/* I2S3 clock-gated */
 #endif
+			SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I14,
+				      Soc_Aud_InterConnectionOutput_O00);
+			SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I14,
+				      Soc_Aud_InterConnectionOutput_O01);
 			EnableAfe(false);
 		}
 		DisableALLbySampleRate(samplerate);
+		AudDrv_Clk_Off();
 	}
 	AudDrv_Clk_Off();
 	return 0;
@@ -292,7 +258,7 @@ static int Audio_i2s0_hdoutput_Set(struct snd_kcontrol *kcontrol,
 {
 	pr_debug("+%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(i2s0_HD_output)) {
-		pr_warn("return -EINVAL\n");
+		pr_err("return -EINVAL\n");
 		return -EINVAL;
 	}
 	AudDrv_Clk_On();
@@ -329,7 +295,7 @@ static int Audio_i2s0_ExtCodec_EchoRef_Set(struct snd_kcontrol *kcontrol,
 {
 	pr_debug("%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(i2s0_ExtCodec_EchoRef)) {
-		pr_warn("return -EINVAL\n");
+		pr_err("return -EINVAL\n");
 		return -EINVAL;
 	}
 	mi2s0_extcodec_echoref_control = ucontrol->value.integer.value[0];
@@ -368,7 +334,7 @@ static int mtk_pcm_i2s0_stop(struct snd_pcm_substream *substream)
 	AFE_BLOCK_T *Afe_Block = &(pI2s0MemControl->rBlock);
 
 	pr_debug("mtk_pcm_i2s0_stop\n");
-	irq_remove_user(substream, Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE);
+	SetIrqEnable(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, false);
 
 	/* here start digital part */
 	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I05,
@@ -518,7 +484,7 @@ static int mtk_pcm_i2s0_open(struct snd_pcm_substream *substream)
 	else
 
 	 if (ret < 0) {
-		pr_warn("mtk_pcm_i2s0_close\n");
+		pr_err("mtk_pcm_i2s0_close\n");
 		mtk_pcm_i2s0_close(substream);
 		return ret;
 	}
@@ -550,11 +516,14 @@ static int mtk_pcm_i2s0_start(struct snd_pcm_substream *substream)
 	AudDrv_Clk_On();
 	SetMemifSubStream(Soc_Aud_Digital_Block_MEM_DL1, substream);
 	if (runtime->format == SNDRV_PCM_FORMAT_S32_LE
-	    || runtime->format == SNDRV_PCM_FORMAT_U32_LE) {
+	    || runtime->format == SNDRV_PCM_FORMAT_S32_LE) {
 		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL1,
+					     AFE_WLEN_32_BIT_ALIGN_8BIT_0_24BIT_DATA);
+		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL2,
 					     AFE_WLEN_32_BIT_ALIGN_8BIT_0_24BIT_DATA);
 	} else {
 		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL1, AFE_WLEN_16_BIT);
+		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL2, AFE_WLEN_16_BIT);
 	}
 
 	SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_16BIT, Soc_Aud_InterConnectionOutput_O00);
@@ -574,7 +543,7 @@ static int mtk_pcm_i2s0_start(struct snd_pcm_substream *substream)
 	if (mi2s0_hdoutput_control == true)
 		u32AudioI2S |= Soc_Aud_LOW_JITTER_CLOCK << 12; /* Low jitter mode */
 
-	pr_debug(" u32AudioI2S= 0x%x\n", u32AudioI2S);
+	pr_warn(" u32AudioI2S= 0x%x\n", u32AudioI2S);
 	Afe_Set_Reg(AFE_I2S_CON3, u32AudioI2S | 1, AFE_MASK_ALL);
 
 	SetSampleRate(Soc_Aud_Digital_Block_MEM_DL1, runtime->rate);
@@ -582,10 +551,9 @@ static int mtk_pcm_i2s0_start(struct snd_pcm_substream *substream)
 	SetMemoryPathEnable(Soc_Aud_Digital_Block_MEM_DL1, true);
 
 	/* here to set interrupt */
-	irq_add_user(substream,
-		     Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE,
-		     substream->runtime->rate,
-		     substream->runtime->period_size);
+	SetIrqMcuCounter(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, runtime->period_size);
+	SetIrqMcuSampleRate(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, runtime->rate);
+	SetIrqEnable(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, true);
 
 	EnableAfe(true);
 
@@ -594,6 +562,8 @@ static int mtk_pcm_i2s0_start(struct snd_pcm_substream *substream)
 
 static int mtk_pcm_i2s0_trigger(struct snd_pcm_substream *substream, int cmd)
 {
+	pr_warn("mtk_pcm_i2s0_trigger cmd = %d\n", cmd);
+
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
@@ -625,7 +595,7 @@ static int mtk_pcm_i2s0_copy(struct snd_pcm_substream *substream,
 	PRINTK_AUD_DL1(" WriteIdx=0x%x, ReadIdx=0x%x, DataRemained=0x%x\n",
 		       Afe_Block->u4WriteIdx, Afe_Block->u4DMAReadIdx, Afe_Block->u4DataRemained);
 	if (Afe_Block->u4BufferSize == 0) {
-		pr_warn(" u4BufferSize=0 Error");
+		pr_err(" u4BufferSize=0 Error");
 		return 0;
 	}
 
@@ -746,6 +716,7 @@ static int mtk_pcm_i2s0_silence(struct snd_pcm_substream *substream,
 				int channel, snd_pcm_uframes_t pos,
 				snd_pcm_uframes_t count)
 {
+	pr_warn("%s\n", __func__);
 	return 0; /* do nothing */
 }
 
@@ -754,6 +725,7 @@ static void *dummy_page[2];
 static struct page *mtk_i2s0_pcm_page(struct snd_pcm_substream *substream,
 				      unsigned long offset)
 {
+	pr_warn("%s\n", __func__);
 	return virt_to_page(dummy_page[substream->stream]); /* the same page */
 }
 
@@ -779,7 +751,7 @@ static struct snd_soc_platform_driver mtk_i2s0_soc_platform = {
 
 static int mtk_i2s0_probe(struct platform_device *pdev)
 {
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 
 	pdev->dev.coherent_dma_mask = DMA_BIT_MASK(64);
 	if (!pdev->dev.dma_mask)
@@ -788,7 +760,7 @@ static int mtk_i2s0_probe(struct platform_device *pdev)
 	if (pdev->dev.of_node)
 		dev_set_name(&pdev->dev, "%s", MT_SOC_I2S0_PCM);
 
-	pr_debug("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
+	pr_warn("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
 
 	mDev = &pdev->dev;
 
@@ -800,14 +772,14 @@ static int mtk_asoc_pcm_i2s0_new(struct snd_soc_pcm_runtime *rtd)
 {
 	int ret = 0;
 
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	return ret;
 }
 
 
 static int mtk_afe_i2s0_probe(struct snd_soc_platform *platform)
 {
-	pr_debug("mtk_afe_i2s0_probe\n");
+	pr_warn("mtk_afe_i2s0_probe\n");
 	snd_soc_add_platform_controls(platform, Audio_snd_i2s0_controls,
 				      ARRAY_SIZE(Audio_snd_i2s0_controls));
 	return 0;
@@ -815,7 +787,7 @@ static int mtk_afe_i2s0_probe(struct snd_soc_platform *platform)
 
 static int mtk_i2s0_remove(struct platform_device *pdev)
 {
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	snd_soc_unregister_platform(&pdev->dev);
 	return 0;
 }
@@ -847,7 +819,7 @@ static int __init mtk_i2s0_soc_platform_init(void)
 {
 	int ret;
 
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 #ifndef CONFIG_OF
 	soc_mtki2s0_dev = platform_device_alloc(MT_SOC_I2S0_PCM, -1);
 	if (!soc_mtki2s0_dev)
@@ -868,7 +840,7 @@ module_init(mtk_i2s0_soc_platform_init);
 
 static void __exit mtk_i2s0_soc_platform_exit(void)
 {
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 
 	platform_driver_unregister(&mtk_i2s0_driver);
 }

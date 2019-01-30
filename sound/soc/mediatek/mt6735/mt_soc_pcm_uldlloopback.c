@@ -1,19 +1,17 @@
 /*
- * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2007 The Android Open Source Project
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program
- * If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 /*******************************************************************************
  *
@@ -95,51 +93,52 @@ static struct snd_pcm_hw_constraint_list constraints_sample_rates = {
 static int mtk_uldlloopback_open(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
+	int err = 0;
 	int ret = 0;
 
+	pr_warn("%s\n", __func__);
 	AudDrv_Clk_On();
 	AudDrv_ADC_Clk_On();
-	pr_debug("%s\n", __func__);
+	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+		pr_err("%s  with mtk_uldlloopback_open\n", __func__);
+		runtime->rate = 48000;
+		return 0;
+	}
 
 	runtime->hw = mtk_uldlloopback_hardware;
-	memcpy((void *)(&(runtime->hw)), (void *)&mtk_uldlloopback_hardware,
+	memcpy((void *)(&(runtime->hw)), (void *)&mtk_uldlloopback_hardware ,
 	       sizeof(struct snd_pcm_hardware));
 
 	ret = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_RATE,
 					 &constraints_sample_rates);
-	if (ret < 0)
-		pr_warn("snd_pcm_hw_constraint_list failed\n");
-
 	ret = snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS);
 
 	if (ret < 0)
 		pr_warn("snd_pcm_hw_constraint_integer failed\n");
 
 	/* print for hw pcm information */
-	pr_debug("mtk_uldlloopback_open runtime rate = %d channels = %d\n",
+	pr_warn("mtk_uldlloopback_open runtime rate = %d channels = %d\n",
 	       runtime->rate, runtime->channels);
 	runtime->hw.info |= SNDRV_PCM_INFO_INTERLEAVED;
 	runtime->hw.info |= SNDRV_PCM_INFO_NONINTERLEAVED;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		pr_debug("SNDRV_PCM_STREAM_PLAYBACK mtkalsa_voice_constraints\n");
+		pr_warn("SNDRV_PCM_STREAM_PLAYBACK mtkalsa_voice_constraints\n");
 
-	if (ret < 0) {
-		pr_warn("mtk_uldlloopbackpcm_close\n");
+	if (err < 0) {
+		pr_err("mtk_uldlloopbackpcm_close\n");
 		mtk_uldlloopbackpcm_close(substream);
-		return ret;
+		return err;
 	}
-	pr_debug("mtk_uldlloopback_open return\n");
+	pr_warn("mtk_uldlloopback_open return\n");
 	return 0;
 }
 
 static int mtk_uldlloopbackpcm_close(struct snd_pcm_substream *substream)
 {
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-		pr_debug("%s  with SNDRV_PCM_STREAM_CAPTURE\n", __func__);
-		AudDrv_ADC_Clk_Off();
-		AudDrv_Clk_Off();
+		pr_err("%s  with SNDRV_PCM_STREAM_CAPTURE\n", __func__);
 		return 0;
 	}
 
@@ -160,10 +159,8 @@ static int mtk_uldlloopbackpcm_close(struct snd_pcm_substream *substream)
 
 	/* stop DAC output */
 	SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_DAC, false);
-	if (GetI2SDacEnable() == false) {
-		SetI2SADDAEnable(false);
+	if (GetI2SDacEnable() == false)
 		SetI2SDacEnable(false);
-	}
 
 	/* stop I2S */
 	Afe_Set_Reg(AFE_I2S_CON3, 0x0, 0x1);
@@ -182,7 +179,7 @@ static int mtk_uldlloopbackpcm_close(struct snd_pcm_substream *substream)
 static int mtk_uldlloopbackpcm_trigger(struct snd_pcm_substream *substream,
 				       int cmd)
 {
-	pr_debug("%s cmd = %d\n", __func__, cmd);
+	pr_warn("%s cmd = %d\n", __func__, cmd);
 
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
@@ -206,7 +203,7 @@ static int mtk_uldlloopback_silence(struct snd_pcm_substream *substream,
 				    int channel, snd_pcm_uframes_t pos,
 				    snd_pcm_uframes_t count)
 {
-	pr_debug("dummy_pcm_silence\n");
+	pr_warn("dummy_pcm_silence\n");
 	return 0; /* do nothing */
 }
 
@@ -216,7 +213,7 @@ static void *dummy_page[2];
 static struct page *mtk_uldlloopback_page(struct snd_pcm_substream *substream,
 					  unsigned long offset)
 {
-	pr_debug("dummy_pcm_page\n");
+	pr_warn("dummy_pcm_page\n");
 	return virt_to_page(dummy_page[substream->stream]); /* the same page */
 }
 
@@ -243,16 +240,18 @@ static int mtk_uldlloopback_pcm_prepare(struct snd_pcm_substream *substream)
 	uint32 u32AudioI2S = 0;
 
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-		pr_debug("%s  with mtk_uldlloopback_pcm_prepare\n", __func__);
+		pr_err("%s  with mtk_uldlloopback_pcm_prepare\n", __func__);
 		return 0;
 	}
 
-	pr_debug("%s rate = %d\n", __func__, runtime->rate);
+	pr_warn("%s rate = %d\n", __func__, runtime->rate);
 
 	Afe_Set_Reg(AFE_TOP_CON0, 0x00000000, 0xffffffff);
 	if (runtime->format == SNDRV_PCM_FORMAT_S32_LE ||
 	    runtime->format == SNDRV_PCM_FORMAT_U32_LE) {
 		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL1,
+					     AFE_WLEN_32_BIT_ALIGN_8BIT_0_24BIT_DATA);
+		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL2,
 					     AFE_WLEN_32_BIT_ALIGN_8BIT_0_24BIT_DATA);
 		SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_24BIT,
 					  Soc_Aud_InterConnectionOutput_O03);
@@ -260,6 +259,7 @@ static int mtk_uldlloopback_pcm_prepare(struct snd_pcm_substream *substream)
 					  Soc_Aud_InterConnectionOutput_O04);
 	} else {
 		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL1, AFE_WLEN_16_BIT);
+		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL2, AFE_WLEN_16_BIT);
 		SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_16BIT,
 					  Soc_Aud_InterConnectionOutput_O03);
 		SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_16BIT,
@@ -282,7 +282,7 @@ static int mtk_uldlloopback_pcm_prepare(struct snd_pcm_substream *substream)
 	u32AudioI2S |= SampleRateTransform(runtime->rate) << 8;
 	u32AudioI2S |= Soc_Aud_I2S_FORMAT_I2S << 3; /* us3 I2s format */
 	u32AudioI2S |= Soc_Aud_I2S_WLEN_WLEN_32BITS << 1; /* 32 BITS */
-	pr_debug("u32AudioI2S= 0x%x\n", u32AudioI2S);
+	pr_warn("u32AudioI2S= 0x%x\n", u32AudioI2S);
 	Afe_Set_Reg(AFE_I2S_CON3, u32AudioI2S | 1, AFE_MASK_ALL);
 
 	/* start I2S DAC out */
@@ -302,8 +302,6 @@ static int mtk_uldlloopback_pcm_prepare(struct snd_pcm_substream *substream)
 		SetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_IN_ADC, true);
 
 	EnableAfe(true);
-	if (GetMemoryPathEnable(Soc_Aud_Digital_Block_I2S_OUT_DAC) == true)
-		SetI2SADDAEnable(true);
 
 	return 0;
 }
@@ -344,7 +342,7 @@ static struct snd_soc_platform_driver mtk_soc_dummy_platform = {
 
 static int mtk_uldlloopback_probe(struct platform_device *pdev)
 {
-	pr_debug("mtk_uldlloopback_probe\n");
+	pr_warn("mtk_uldlloopback_probe\n");
 
 	pdev->dev.coherent_dma_mask = DMA_BIT_MASK(64);
 	if (!pdev->dev.dma_mask)
@@ -353,7 +351,7 @@ static int mtk_uldlloopback_probe(struct platform_device *pdev)
 	if (pdev->dev.of_node)
 		dev_set_name(&pdev->dev, "%s", MT_SOC_ULDLLOOPBACK_PCM);
 
-	pr_debug("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
+	pr_warn("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
 	return snd_soc_register_platform(&pdev->dev,
 					 &mtk_soc_dummy_platform);
 }
@@ -363,14 +361,14 @@ static int mtk_asoc_uldlloopbackpcm_new(struct snd_soc_pcm_runtime *rtd)
 	int ret = 0;
 
 	pruntimepcm  = rtd;
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	return ret;
 }
 
 
 static int mtk_afe_uldlloopback_probe(struct snd_soc_platform *platform)
 {
-	pr_debug("mtk_afe_uldlloopback_probe\n");
+	pr_warn("mtk_afe_uldlloopback_probe\n");
 	return 0;
 }
 
@@ -409,7 +407,7 @@ static int __init mtk_soc_uldlloopback_platform_init(void)
 {
 	int ret = 0;
 
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 #ifndef CONFIG_OF
 	soc_mtkafe_uldlloopback_dev = platform_device_alloc(MT_SOC_ULDLLOOPBACK_PCM ,
 							    -1);
@@ -432,7 +430,7 @@ module_init(mtk_soc_uldlloopback_platform_init);
 static void __exit mtk_soc_uldlloopback_platform_exit(void)
 {
 
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	platform_driver_unregister(&mtk_afe_uldllopback_driver);
 }
 module_exit(mtk_soc_uldlloopback_platform_exit);

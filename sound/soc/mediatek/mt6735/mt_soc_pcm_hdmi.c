@@ -1,19 +1,17 @@
 /*
- * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2007 The Android Open Source Project
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program
- * If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 /*******************************************************************************
  *
@@ -291,20 +289,20 @@ static void copysinewavetohdmi(unsigned int channels)
 	if (channels == 0) {
 		memset_io((void *)(Bufferaddr), 0x7f7f7f7f,
 		       Hhdmi_Buffer_length);  /* using for observe data */
-		pr_debug("use fix pattern Bufferaddr = %p Hhdmi_Buffer_length = %d\n", Bufferaddr,
+		pr_warn("use fix pattern Bufferaddr = %p Hhdmi_Buffer_length = %d\n", Bufferaddr,
 		       Hhdmi_Buffer_length);
 		return;
 	}
 
-	pr_debug("%s buffer area = %p arraybytes = %d bufferlength = %zu\n", __func__,
+	pr_warn("%s buffer area = %p arraybytes = %d bufferlength = %zu\n", __func__,
 	       HDMI_dma_buf->area , arraybytes, HDMI_dma_buf->bytes);
 	for (i = 0; i < HDMI_dma_buf->bytes; i += arraybytes) {
-		pr_debug("Bufferaddr + i = %p arraybytes = %d\n", Bufferaddr + i, arraybytes);
+		pr_warn("Bufferaddr + i = %p arraybytes = %d\n", Bufferaddr + i, arraybytes);
 		memcpy((void *)(Bufferaddr + i), (void *)SinewaveArr, arraybytes);
 	}
 
 	for (i = 0; i < 512; i++)
-		pr_debug("Bufferaddr[%d] = %x\n", i, *(Bufferaddr + i));
+		pr_warn("Bufferaddr[%d] = %x\n", i, *(Bufferaddr + i));
 
 
 }
@@ -312,7 +310,7 @@ static void copysinewavetohdmi(unsigned int channels)
 static void SetHDMIAddress(void)
 {
 #if 0
-	pr_debug("%s buffer length = %d\n", __func__,    HDMI_dma_buf->bytes);
+	pr_warn("%s buffer length = %d\n", __func__,    HDMI_dma_buf->bytes);
 	Afe_Set_Reg(AFE_HDMI_BASE , HDMI_dma_buf->addr , 0xffffffff);
 	Afe_Set_Reg(AFE_HDMI_END  , HDMI_dma_buf->addr + (HDMI_dma_buf->bytes - 1),
 		    0xffffffff);
@@ -334,7 +332,7 @@ static const struct soc_enum Audio_Hdmi_Enum[] = {
 static int Audio_hdmi_SideGen_Get(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_debug("Audio_hdmi_SideGen_Get = %d\n", mHdmi_sidegen_control);
+	pr_warn("Audio_hdmi_SideGen_Get = %d\n", mHdmi_sidegen_control);
 	ucontrol->value.integer.value[0] = mHdmi_sidegen_control;
 	return 0;
 }
@@ -342,9 +340,9 @@ static int Audio_hdmi_SideGen_Get(struct snd_kcontrol *kcontrol,
 static int Audio_hdmi_SideGen_Set(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_debug("%s()\n", __func__);
+	pr_warn("%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(HDMI_SIDEGEN)) {
-		pr_warn("return -EINVAL\n");
+		pr_err("return -EINVAL\n");
 		return -EINVAL;
 	}
 
@@ -471,9 +469,9 @@ static int mtk_pcm_hdmi_stop(struct snd_pcm_substream *substream)
 {
 	AFE_BLOCK_T *Afe_Block = &(pMemControl->rBlock);
 
-	pr_debug("mtk_pcm_hdmi_stop\n");
+	pr_warn("mtk_pcm_hdmi_stop\n");
 
-	irq_remove_user(substream, Soc_Aud_IRQ_MCU_MODE_IRQ5_MCU_MODE);
+	SetIrqEnable(Soc_Aud_IRQ_MCU_MODE_IRQ5_MCU_MODE, false);
 
 	SetMemoryPathEnable(Soc_Aud_Digital_Block_MEM_HDMI, false);
 
@@ -536,7 +534,7 @@ static void SetHDMIBuffer(struct snd_pcm_substream *substream,
 			  struct snd_pcm_hw_params *hw_params)
 {
 
-	/* kal_uint32 volatile u4tmpMrg1; */
+	kal_uint32 volatile u4tmpMrg1;
 
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	AFE_BLOCK_T *pblock = &(pMemControl->rBlock);
@@ -559,10 +557,11 @@ static void SetHDMIBuffer(struct snd_pcm_substream *substream,
 		    0xffffffff);
 
 	u4tmpMrg1 = Afe_Get_Reg(AFE_HDMI_BASE);
+#endif
 	u4tmpMrg1 &= 0x00ffffff;
 
 	PRINTK_AUD_HDMI("SetHDMIBuffer AFE_HDMI_BASE =0x%x\n", u4tmpMrg1);
-#endif
+
 }
 
 
@@ -632,6 +631,7 @@ static int mtk_pcm_hdmi_open(struct snd_pcm_substream *substream)
 {
 
 	struct snd_pcm_runtime *runtime = substream->runtime;
+	int err = 0;
 	int ret = 0;
 
 	PRINTK_AUD_HDMI("mtk_pcm_hdmi_open\n");
@@ -652,6 +652,9 @@ static int mtk_pcm_hdmi_open(struct snd_pcm_substream *substream)
 	if (ret < 0)
 		PRINTK_AUD_HDMI("snd_pcm_hw_constraint_integer failed\n");
 
+	if (err < 0)
+		return err;
+
 	/* print for hw pcm information */
 	PRINTK_AUD_HDMI("mtk_pcm_hdmi_open runtime rate = %d channels = %d substream->pcm->device = %d\n",
 			runtime->rate, runtime->channels, substream->pcm->device);
@@ -662,6 +665,11 @@ static int mtk_pcm_hdmi_open(struct snd_pcm_substream *substream)
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		PRINTK_AUD_HDMI("SNDRV_PCM_STREAM_PLAYBACK mtkalsa_hdmi_playback_constraints\n");
 
+	if (err < 0) {
+		PRINTK_AUD_HDMI("mtk_pcm_hdmi_close\n");
+		mtk_pcm_hdmi_close(substream);
+		return err;
+	}
 	PRINTK_AUD_HDMI("mtk_pcm_hdmi_open return\n");
 	return 0;
 }
@@ -706,7 +714,7 @@ static int mtk_pcm_hdmi_prepare(struct snd_pcm_substream *substream)
 	PRINTK_AUD_HDMI("mtk_pcm_hdmi_prepare format =%d, rate = %d  channels = %d period_size = %lu\n",
 			runtime->format, runtime->rate, runtime->channels, runtime->period_size);
 
-	irq_remove_user(substream, Soc_Aud_IRQ_MCU_MODE_IRQ5_MCU_MODE);
+	SetIrqEnable(Soc_Aud_IRQ_MCU_MODE_IRQ5_MCU_MODE, false);
 
 	SetMemoryPathEnable(Soc_Aud_Digital_Block_MEM_HDMI, false);
 
@@ -891,7 +899,7 @@ static int mtk_pcm_hdmi_start(struct snd_pcm_substream *substream)
 	/* u32AudioI2S |= Soc_Aud_I2S_FORMAT_I2S << 3; // us3 I2s format */
 	/* u32AudioI2S |= Soc_Aud_I2S_WLEN_WLEN_16BITS << 1; // 32 BITS */
 	/* u32AudioI2S |= Soc_Aud_NORMAL_CLOCK << 12 ; //Low jitter mode */
-	/* pr_debug(" u32AudioI2S= 0x%x\n", u32AudioI2S); */
+	/* pr_warn(" u32AudioI2S= 0x%x\n", u32AudioI2S); */
 	/* Afe_Set_Reg(AFE_I2S_CON3, u32AudioI2S | 1, AFE_MASK_ALL); */
 
 #endif
@@ -901,10 +909,9 @@ static int mtk_pcm_hdmi_start(struct snd_pcm_substream *substream)
 #endif
 
 	/* here to set interrupt */
-	irq_add_user(substream,
-		     Soc_Aud_IRQ_MCU_MODE_IRQ5_MCU_MODE,
-		     substream->runtime->rate,
-		     (runtime->period_size / 2));
+	SetIrqMcuCounter(Soc_Aud_IRQ_MCU_MODE_IRQ5_MCU_MODE,
+			 (runtime->period_size / 2));
+	SetIrqEnable(Soc_Aud_IRQ_MCU_MODE_IRQ5_MCU_MODE, true);
 
 	EnableAfe(true);
 
@@ -920,7 +927,7 @@ static int mtk_pcm_hdmi_start(struct snd_pcm_substream *substream)
 	u4tmpValue2 = Afe_Get_Reg(AFE_IRQ_DEBUG);
 	u4tmpValue2 &= 0x0003ffff;
 
-	pr_debug("AFE_IRQ_MCU_STATUS =0x%x IRQ_MCU_EN= 0x%x, IRQ_CNT5=0x%x, AFE_IRQ_DEBUG =0x%x\n",
+	pr_warn("AFE_IRQ_MCU_STATUS =0x%x IRQ_MCU_EN= 0x%x, IRQ_CNT5=0x%x, AFE_IRQ_DEBUG =0x%x\n",
 	       u4RegValue, u4tmpValue, u4tmpValue1, u4tmpValue2);
 
 	return 0;

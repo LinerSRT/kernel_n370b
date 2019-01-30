@@ -1,16 +1,3 @@
-/*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- */
-
 /******************************************************************************
 *
  *
@@ -74,9 +61,9 @@
 #include <linux/proc_fs.h>
 #include <linux/string.h>
 #include <linux/mutex.h>
-#include <linux/uaccess.h>
+#include <asm/uaccess.h>
 #include <asm/irq.h>
-#include <linux/io.h>
+#include <asm/io.h>
 /*#include <mach/mt_reg_base.h>*/
 #include <asm/div64.h>
 #include <mt-plat/aee.h>
@@ -133,7 +120,7 @@ define for PCM settings
 #define MIN_PERIOD_SIZE       1
 #define MAX_PERIOD_SIZE     MAX_BUFFER_SIZE
 
-#define UL1_MAX_BUFFER_SIZE     (48*1024)
+#define UL1_MAX_BUFFER_SIZE     (36*1024)
 #define UL1_MIN_PERIOD_SIZE       1
 #define UL1_MAX_PERIOD_SIZE     UL1_MAX_BUFFER_SIZE
 

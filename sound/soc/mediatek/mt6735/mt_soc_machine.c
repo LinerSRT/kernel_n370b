@@ -1,19 +1,17 @@
 /*
- * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2007 The Android Open Source Project
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program
- * If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 /*******************************************************************************
  *
@@ -86,9 +84,9 @@
 #include <linux/mutex.h>
 /*#include <linux/xlog.h>*/
 /*#include <mach/irqs.h>*/
-#include <linux/uaccess.h>
+#include <asm/uaccess.h>
 #include <asm/irq.h>
-#include <linux/io.h>
+#include <asm/io.h>
 #include <asm/div64.h>
 /*
 #include <mach/mt_reg_base.h>
@@ -123,13 +121,13 @@ static struct dentry *mt_sco_audio_debugfs;
 
 static int mtmachine_startup(struct snd_pcm_substream *substream)
 {
-	/* pr_debug("mtmachine_startup\n"); */
+	/* printk("mtmachine_startup\n"); */
 	return 0;
 }
 
 static int mtmachine_prepare(struct snd_pcm_substream *substream)
 {
-	/* pr_debug("mtmachine_prepare\n"); */
+	/* printk("mtmachine_prepare\n"); */
 	return 0;
 }
 
@@ -138,15 +136,24 @@ static struct snd_soc_ops mt_machine_audio_ops = {
 	.prepare = mtmachine_prepare,
 };
 
+static int mtmachine_compr_startup(struct snd_compr_stream *stream)
+{
+	return 0;
+}
+
+static struct snd_soc_compr_ops mt_machine_audio_compr_ops = {
+	.startup = mtmachine_compr_startup,
+};
+
 static int mtmachine_startupmedia2(struct snd_pcm_substream *substream)
 {
-	/* pr_debug("mtmachine_startupmedia2\n"); */
+	/* printk("mtmachine_startupmedia2\n"); */
 	return 0;
 }
 
 static int mtmachine_preparemedia2(struct snd_pcm_substream *substream)
 {
-	/* pr_debug("mtmachine_preparemedia2\n"); */
+	/* printk("mtmachine_preparemedia2\n"); */
 	return 0;
 }
 
@@ -430,36 +437,6 @@ static ssize_t mt_soc_debug_read(struct file *file, char __user *buf, size_t cou
 		       Afe_Get_Reg(AUDIO_TOP_CON2));
 	n += scnprintf(buffer + n, size - n, "AUDIO_TOP_CON3		   = 0x%x\n",
 		       Afe_Get_Reg(AUDIO_TOP_CON3));
-	n += scnprintf(buffer + n, size - n, "AFE_BUS_MON1		   = 0x%x\n",
-			Afe_Get_Reg(AFE_BUS_MON1));
-	n += scnprintf(buffer + n, size - n, "AFE_CONN_MON0		   = 0x%x\n",
-		Afe_Get_Reg(AFE_CONN_MON0));
-	n += scnprintf(buffer + n, size - n, "AFE_CONN_MON1		   = 0x%x\n",
-		Afe_Get_Reg(AFE_CONN_MON1));
-	n += scnprintf(buffer + n, size - n, "AFE_CONN_MON2		   = 0x%x\n",
-		Afe_Get_Reg(AFE_CONN_MON2));
-	n += scnprintf(buffer + n, size - n, "AFE_CONN_MON3		   = 0x%x\n",
-		Afe_Get_Reg(AFE_CONN_MON3));
-	n += scnprintf(buffer + n, size - n, "AFE_APB_MON		   = 0x%x\n",
-		Afe_Get_Reg(AFE_APB_MON));
-	n += scnprintf(buffer + n, size - n, "CLK_MISC_CFG_0  = 0x%x\n",
-		GetClkCfg(CLK_MISC_CFG_0));
-	n += scnprintf(buffer + n, size - n, "AUDIO_CLK_CFG_4  = 0x%x\n",
-		GetClkCfg(AUDIO_CLK_CFG_4));
-	n += scnprintf(buffer + n, size - n, "AUDIO_CLK_CFG_6  = 0x%x\n",
-		GetClkCfg(AUDIO_CLK_CFG_6));
-	n += scnprintf(buffer + n, size - n, "APLL1_CON0  = 0x%x\n",
-		GetpllCfg(APLL1_CON0));
-	n += scnprintf(buffer + n, size - n, "APLL1_CON1  = 0x%x\n",
-		GetpllCfg(APLL1_CON1));
-	n += scnprintf(buffer + n, size - n, "APLL1_CON2  = 0x%x\n",
-		GetpllCfg(APLL1_CON2));
-	n += scnprintf(buffer + n, size - n, "APLL1_CON3  = 0x%x\n",
-		GetpllCfg(APLL1_CON3));
-	n += scnprintf(buffer + n, size - n, "APLL1_PWR_CON0  = 0x%x\n",
-		GetpllCfg(APLL1_PWR_CON0));
-	n += scnprintf(buffer + n, size - n, "INFRA_GLOBALCON_PDN0  = 0x%x\n",
-		GetInfraCfg(INFRA_GLOBALCON_PDN0));
 	n += scnprintf(buffer + n, size - n, "AFE_DAC_CON0		   = 0x%x\n",
 		       Afe_Get_Reg(AFE_DAC_CON0));
 	n += scnprintf(buffer + n, size - n, "AFE_DAC_CON1		   = 0x%x\n",
@@ -776,42 +753,25 @@ static char const PareGetkeyAna[] = "Getanareg";
 static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 				  size_t count, loff_t *offset)
 {
-#define MAX_DEBUG_WRITE_INPUT 256
 	int ret = 0;
-	char InputString[MAX_DEBUG_WRITE_INPUT];
+	char InputString[256];
 	char *token1 = NULL;
 	char *token2 = NULL;
 	char *token3 = NULL;
 	char *token4 = NULL;
 	char *token5 = NULL;
 	char *temp = NULL;
-	char *str_begin = NULL;
 
 	unsigned int long regaddr = 0;
 	unsigned int long regvalue = 0;
 	char delim[] = " ,";
 
-	if (!count) {
-		pr_debug("%s(), count is 0, return directly\n", __func__);
-		goto exit;
-	}
-
-	if (count > MAX_DEBUG_WRITE_INPUT)
-		count = MAX_DEBUG_WRITE_INPUT;
-
-	memset((void *)InputString, 0, MAX_DEBUG_WRITE_INPUT);
-
+	memset((void *)InputString, 0, 256);
 	if (copy_from_user((InputString), buf, count))
-		pr_debug("%s(), copy_from_user fail, mt_soc_debug_write count = %zu, temp = %s\n",
-			 __func__, count, InputString);
+		pr_debug("copy_from_user mt_soc_debug_write count = %zu temp = %s\n", count,
+			 InputString);
 
-	str_begin = kstrndup(InputString, MAX_DEBUG_WRITE_INPUT, GFP_KERNEL);
-	if (!str_begin) {
-		pr_warn("%s(), kstrndup fail\n", __func__);
-		goto exit;
-	}
-	temp = str_begin;
-
+	temp = kstrdup(InputString, GFP_KERNEL);
 	pr_debug("copy_from_user mt_soc_debug_write count = %zu temp = %s pointer = %p\n",
 		 count, InputString, InputString);
 	token1 = strsep(&temp, delim);
@@ -830,12 +790,10 @@ static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 		pr_debug("strcmp (token1,ParSetkeyAfe)\n");
 		ret = kstrtoul(token3, 16, &regaddr);
 		ret = kstrtoul(token5, 16, &regvalue);
-		AudDrv_Clk_On();
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", ParSetkeyAfe, regaddr, regvalue);
 		Afe_Set_Reg(regaddr, regvalue, 0xffffffff);
 		regvalue = Afe_Get_Reg(regaddr);
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", ParSetkeyAfe, regaddr, regvalue);
-		AudDrv_Clk_Off();
 	}
 	if (strcmp(token1, ParSetkeyAna) == 0) {
 		pr_debug("strcmp (token1,ParSetkeyAna)\n");
@@ -843,11 +801,11 @@ static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 		ret = kstrtoul(token5, 16, &regvalue);
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", ParSetkeyAna, regaddr, regvalue);
 		/* clk_buf_ctrl(CLK_BUF_AUDIO, true); //6752 need? */
+		AudDrv_Clk_On();
 		audckbufEnable(true);
 		Ana_Set_Reg(regaddr, regvalue, 0xffffffff);
 		regvalue = Ana_Get_Reg(regaddr);
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", ParSetkeyAna, regaddr, regvalue);
-		audckbufEnable(false);
 	}
 	if (strcmp(token1, ParSetkeyCfg) == 0) {
 		pr_debug("strcmp (token1,ParSetkeyCfg)\n");
@@ -870,10 +828,6 @@ static ssize_t mt_soc_debug_write(struct file *f, const char __user *buf,
 		regvalue = Ana_Get_Reg(regaddr);
 		pr_debug("%s regaddr = 0x%lu regvalue = 0x%lu\n", PareGetkeyAna, regaddr, regvalue);
 	}
-
-	kfree(str_begin);
-
-exit:
 	return count;
 }
 
@@ -979,16 +933,6 @@ static struct snd_soc_dai_link mt_soc_dai_common[] = {
 	 .cpu_dai_name = MT_SOC_I2S0DL1_NAME,
 	 .platform_name = MT_SOC_I2S0DL1_PCM,
 	 .codec_dai_name = MT_SOC_CODEC_I2S0TXDAI_NAME,
-	 .codec_name = MT_SOC_CODEC_NAME,
-	 .init = mt_soc_audio_init,
-	 .ops = &mt_machine_audio_ops,
-	 },
-	 {
-	 .name = "DEEP_BUFFER_DL_OUTPUT",
-	 .stream_name = MT_SOC_DEEP_BUFFER_DL_STREAM_NAME,
-	 .cpu_dai_name	 = "snd-soc-dummy-dai",
-	 .platform_name  = MT_SOC_DEEP_BUFFER_DL_PCM,
-	 .codec_dai_name = MT_SOC_CODEC_DEEPBUFFER_TX_DAI_NAME,
 	 .codec_name = MT_SOC_CODEC_NAME,
 	 .init = mt_soc_audio_init,
 	 .ops = &mt_machine_audio_ops,
@@ -1105,6 +1049,16 @@ static struct snd_soc_dai_link mt_soc_dai_common[] = {
 	 .ops = &mt_machine_audio_ops,
 	 },
 	{
+	 .name = "HP_IMPEDANCE",
+	 .stream_name = MT_SOC_HP_IMPEDANCE_STREAM_NAME,
+	 .cpu_dai_name = MT_SOC_HP_IMPEDANCE_NAME,
+	 .platform_name = MT_SOC_HP_IMPEDANCE_PCM,
+	 .codec_dai_name = MT_SOC_CODEC_HP_IMPEDANCE_NAME,
+	 .codec_name = MT_SOC_CODEC_NAME,
+	 .init = mt_soc_audio_init,
+	 .ops = &mt_machine_audio_ops,
+	 },
+	{
 	 .name = "FM_I2S_RX_Playback",
 	 .stream_name = MT_SOC_FM_I2S_PLAYBACK_STREAM_NAME,
 	 .cpu_dai_name = MT_SOC_FM_I2S_NAME,
@@ -1123,6 +1077,17 @@ static struct snd_soc_dai_link mt_soc_dai_common[] = {
 	 .codec_name = MT_SOC_CODEC_DUMMY_NAME,
 	 .init = mt_soc_audio_init,
 	 .ops = &mt_machine_audio_ops,
+	 },
+	{
+	 .name = "OFFLOAD_GDMA_OUT",
+	 .stream_name = MT_SOC_OFFLOAD_GDMA_STREAM_NAME,
+	 .cpu_dai_name = MT_SOC_OFFLOAD_GDMA_NAME,
+	 .platform_name = MT_SOC_OFFLOAD_GDMA_PCM,
+	 .codec_dai_name = MT_SOC_CODEC_OFFLOAD_GDMA_DAI_NAME,
+	 .codec_name = MT_SOC_CODEC_DUMMY_NAME,
+	 .init = mt_soc_audio_init,
+	 /* .ops = &mt_machine_audio_ops, */
+	 .compr_ops = &mt_machine_audio_compr_ops,
 	 },
 	{
 	 .name = "MultiMedia_DL2",
@@ -1183,14 +1148,14 @@ static int __init mt_soc_snd_init(void)
 
 	mt_snd_device = platform_device_alloc("soc-audio", -1);
 	if (!mt_snd_device) {
-		pr_warn("mt6589_probe  platform_device_alloc fail\n");
+		pr_err("mt6589_probe  platform_device_alloc fail\n");
 		return -ENOMEM;
 	}
 	platform_set_drvdata(mt_snd_device, &snd_soc_card_mt);
 	ret = platform_device_add(mt_snd_device);
 
 	if (ret != 0) {
-		pr_warn("mt_soc_snd_init goto put_device fail\n");
+		pr_err("mt_soc_snd_init goto put_device fail\n");
 		goto put_device;
 	}
 

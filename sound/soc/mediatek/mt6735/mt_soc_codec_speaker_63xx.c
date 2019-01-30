@@ -1,19 +1,17 @@
 /*
- * Copyright (C) 2015 MediaTek Inc.
+ * Copyright (C) 2007 The Android Open Source Project
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with this program
- * If not, see <http://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 /*******************************************************************************
  *
@@ -76,7 +74,7 @@ void Speaker_ClassD_Open(void)
 {
 	kal_uint32 i, SPKTrimReg = 0;
 
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	/* spk trim */
 	Ana_Set_Reg(SPK_CON7, 0x4531, 0xffff);	/* TD1,TD2,TD3 for trim (related with trim waiting time) */
 	Ana_Set_Reg(SPK_CON0, 0x3008, 0xffff);	/* Set to class D mode, set 0dB amplifier gain,  enable trim function */
@@ -98,7 +96,7 @@ void Speaker_ClassD_Open(void)
 	if ((SPKTrimReg & 0x8000) == 0)
 		pr_warn("spk trim fail!\n");
 	else
-		pr_debug("spk trim offset=%d\n", (SPKTrimReg & 0x1f));
+		pr_warn("spk trim offset=%d\n", (SPKTrimReg & 0x1f));
 
 	/* spk amp gain fixed at 0dB */
 	Ana_Set_Reg(SPK_CON0, 0x3001, 0xffff);	/* set 0dB amplifier gain */
@@ -106,7 +104,7 @@ void Speaker_ClassD_Open(void)
 
 void Speaker_ClassD_close(void)
 {
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	Ana_Set_Reg(SPK_CON9, 0x2A00, 0xffff);	/* Set Vcm high PSRR mode */
 	Ana_Set_Reg(SPK_ANA_CON0, 0x5000, 0xffff);
 	/* Set 12dB PGA gain(level when trimming) */
@@ -119,7 +117,7 @@ void Speaker_ClassAB_Open(void)
 {
 	kal_uint32 i, SPKTrimReg = 0;
 
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	/* spk trim */
 	Ana_Set_Reg(SPK_CON7, 0x4531, 0xffff);
 	/* TD1,TD2,TD3 for trim (related with trim waiting time) */
@@ -146,7 +144,7 @@ void Speaker_ClassAB_Open(void)
 	if ((SPKTrimReg & 0x8000) == 0)
 		pr_warn("spk trim fail!\n");
 	else
-		pr_debug("spk trim offset=%d\n", (SPKTrimReg & 0x1f));
+		pr_warn("spk trim offset=%d\n", (SPKTrimReg & 0x1f));
 
 	/* spk amp gain fixed at 0dB */
 	Ana_Set_Reg(SPK_CON0, 0x3005, 0xffff);	/* set 0dB amplifier gain */
@@ -154,7 +152,7 @@ void Speaker_ClassAB_Open(void)
 
 void Speaker_ClassAB_close(void)
 {
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	Ana_Set_Reg(SPK_CON9, 0x2100, 0xffff);	/* Set Vcm high PSRR mode */
 	Ana_Set_Reg(SPK_ANA_CON0, 0x0800, 0xffff);	/* Set 0dB PGA gain(level when trimming) */
 	Ana_Set_Reg(SPK_CON0, 0x1005, 0xffff);	/* set -6dB amp gain(level when trimming) */
@@ -163,7 +161,7 @@ void Speaker_ClassAB_close(void)
 
 void Speaker_ReveiverMode_Open(void)
 {
-	pr_debug("%s\n", __func__);
+	pr_warn("%s\n", __func__);
 	Ana_Set_Reg(SPK_CON0, 0x1304, 0xffff);
 	/* Enable thermal_shout_down, OC_shout_down. Set class AB mode, -6dB amp gain */
 	Ana_Set_Reg(SPK_CON2, 0x02A4, 0xffff);	/* Turn on OC function, set SPK PGA in DCC mode */
@@ -194,7 +192,7 @@ bool GetSpeakerOcFlag(void)
 	OCregister = Ana_Get_Reg(SPK_CON6);
 	DmodeFlag = OCregister & (bitmask << 14);	/* ; no.14 bit is SPK_D_OC_L_DEG */
 	ABmodeFlag = OCregister & (bitmask << 15);	/* ; no.15 bit is SPK_AB_OC_L_DEG */
-	pr_debug("OCregister = %d\n", OCregister);
+	pr_warn("OCregister = %d\n", OCregister);
 	OCFlag = (DmodeFlag | ABmodeFlag);
 	return OCFlag;
 }
