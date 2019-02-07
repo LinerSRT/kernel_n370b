@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ */
+
 /******************************************************************************
 *
  *
@@ -27,6 +40,7 @@
 #define AUDIO_DEF_H
 
 #include "AudDrv_Type_Def.h"
+#include <mt-plat/aee.h>
 
 #define PM_MANAGER_API
 #define AUDIO_MEMORY_SRAM
@@ -44,6 +58,8 @@
 /* #define DEBUG_AUD_DL1 */
 /* #define DEBUG_AUD_DAI */
 /* #define DENALI_FPGA_EARLYPORTING //Denali early porting */
+#define AUDIO_DL2_ISR_COPY_SUPPORT
+
 
 #ifdef DEBUG_AUDDRV
 #define PRINTK_AUDDRV(format, args...) pr_debug(format, ##args)
@@ -145,9 +161,24 @@
 
 #define PRINTK_AUD_ERROR(format, args...)  pr_debug(format, ##args)
 
+
+#define MTK_SND_LOG(fmt, args...) pr_info("<%s(), %d> " fmt, __func__, __LINE__, ## args)
+#define MTK_SND_LOG_LIMIT(FREQ, fmt, args...) do {\
+	static DEFINE_RATELIMIT_STATE(ratelimit, HZ, FREQ);\
+	static int skip_cnt;\
+	\
+	if (__ratelimit(&ratelimit)) {\
+		MTK_SND_LOG(fmt ", skip_cnt<%d>\n", ## args, skip_cnt);\
+		skip_cnt = 0;\
+	} else\
+		skip_cnt++;\
+} while (0)\
+
 /* if need assert , use AUDIO_ASSERT(true) */
 #define AUDIO_ASSERT(value) BUG_ON(false)
 
+#define AUDIO_AEE(message) \
+	(aee_kernel_exception_api(__FILE__, __LINE__, DB_OPT_FTRACE, message, "audio dump ftrace"))
 
 /**********************************
  *  Other Definitions             *
@@ -213,7 +244,6 @@
 #define MT_SOC_MODADCI2SDAI_NAME "mt-soc-mod2adci2s-driver"
 #define MT_SOC_ADC2AWBDAI_NAME "mt-soc-adc2awb-driver"
 #define MT_SOC_IO2DAIDAI_NAME "mt-soc-io2dai-driver"
-#define MT_SOC_HP_IMPEDANCE_NAME "mt-soc-hpimpedancedai-driver"
 #define MT_SOC_FM_I2S_NAME "mt-soc-fmi2S-driver"
 #define MT_SOC_FM_I2S_CAPTURE_NAME "mt-soc-fmi2Scapturedai-driver"
 #define MT_SOC_OFFLOAD_GDMA_NAME "mt-soc-offload-gdma-driver"
@@ -221,7 +251,6 @@
 
 /* platform name */
 #define MT_SOC_DL1_PCM   "mt-soc-dl1-pcm"
-#define MT_SOC_HP_IMPEDANCE_PCM   "mt-soc-hp-impedence-pcm"
 #define MT_SOC_DL1DATA2_PCM   "mt-soc-dl1_data2-pcm"
 #define MT_SOC_DL2_PCM   "mt-soc-dl2-pcm"
 #define MT_SOC_UL1_PCM   "mt-soc-ul1-pcm"
@@ -235,6 +264,7 @@
 #define MT_SOC_I2S0_PCM  "mt-soc-i2s0-pcm"
 #define MT_SOC_MRGRX_PCM  "mt-soc-mrgrx-pcm"
 #define MT_SOC_I2S0DL1_PCM  "mt-soc-i2s0dl1-pcm"
+#define MT_SOC_DEEP_BUFFER_DL_PCM   "mt-soc-deep-buffer-dl-pcm"
 #define MT_SOC_MODDAI_PCM   "mt-soc-MODDAI-pcm"
 #define MT_SOC_VOICE_MD1  "mt-soc-voicemd1"
 #define MT_SOC_VOICE_MD2  "mt-soc-voicemd2"
@@ -263,6 +293,7 @@
 #define MT_SOC_CODEC_RXDAI2_NAME "mt-soc-codec-rx-dai2"
 #define MT_SOC_CODEC_I2S0AWB_NAME "mt-soc-codec-i2s0awb-dai"
 #define MT_SOC_CODEC_I2S0TXDAI_NAME "mt-soc-codec-I2s0tx-dai"
+#define MT_SOC_CODEC_DEEPBUFFER_TX_DAI_NAME "mt-soc-codec-deepbuffer-tx-dai"
 #define MT_SOC_CODEC_DL1AWBDAI_NAME "mt-soc-codec-dl1awb-dai"
 #define MT_SOC_CODEC_VOICE_MD1DAI_NAME "mt-soc-codec-voicemd1-dai"
 #define MT_SOC_CODEC_VOICE_MD2DAI_NAME "mt-soc-codec-voicemd2-dai"
@@ -271,7 +302,6 @@
 #define MT_SOC_CODEC_VOIPCALLBTOUTDAI_NAME "mt-soc-codec-voipcall-btout-dai"
 #define MT_SOC_CODEC_VOIPCALLBTINDAI_NAME "mt-soc-codec-voipcall-btin-dai"
 #define MT_SOC_CODEC_TDMRX_DAI_NAME "mt-soc-tdmrx-dai-codec"
-#define MT_SOC_CODEC_HP_IMPEDANCE_NAME "mt-soc-codec-hp-impedance-dai"
 
 
 #define MT_SOC_CODEC_FMI2S2TXDAI_NAME "mt-soc-codec-fmi2s2tx-dai"
@@ -307,6 +337,7 @@
 #define MT_SOC_HDMI_STREAM_NAME "HMDI_PLayback"
 #define MT_SOC_I2S0_STREAM_NAME "I2S0_PLayback"
 #define MT_SOC_I2SDL1_STREAM_NAME "I2S0DL1_PLayback"
+#define MT_SOC_DEEP_BUFFER_DL_STREAM_NAME "Deep_Buffer_PLayback"
 #define MT_SOC_MRGRX_STREAM_NAME "MRGRX_PLayback"
 #define MT_SOC_MRGRX_CAPTURE_STREAM_NAME "MRGRX_CAPTURE"
 #define MT_SOC_FM_I2S2_STREAM_NAME "FM_I2S2_PLayback"
@@ -320,7 +351,6 @@
 #define MT_SOC_DAI_STREAM_NAME "MultiMedia_dai_Capture"
 #define MT_SOC_MODDAI_STREAM_NAME "MultiMedia_Moddai_Capture"
 #define MT_SOC_ROUTING_STREAM_NAME "MultiMedia_Routing"
-#define MT_SOC_HP_IMPEDANCE_STREAM_NAME "HP_IMPEDANCE_Playback"
 #define MT_SOC_FM_MRGTX_STREAM_NAME "FM_MRGTX_Playback"
 #define MT_SOC_TDM_CAPTURE_STREAM_NAME "TDM_Debug_Record"
 #define MT_SOC_MODADCI2S_STREAM_NAME "ANC_Debug_Record_MOD"

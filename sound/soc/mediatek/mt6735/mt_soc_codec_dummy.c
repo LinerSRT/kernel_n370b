@@ -1,17 +1,19 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2015 MediaTek Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 /*******************************************************************************
  *
@@ -61,19 +63,17 @@
 
 static int dummy_codec_startup(struct snd_pcm_substream *substream, struct snd_soc_dai *Daiport)
 {
-	pr_warn("dummy_codec_startup\n");
 	return 0;
 }
 
 static int dummy_codec_prepare(struct snd_pcm_substream *substream, struct snd_soc_dai *Daiport)
 {
-	pr_warn("dummy_codec_prepare\n ");
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
-		pr_warn("dummy_codec_prepare set up SNDRV_PCM_STREAM_CAPTURE rate = %d\n",
+		pr_debug("dummy_codec_prepare set up SNDRV_PCM_STREAM_CAPTURE rate = %d\n",
 		       substream->runtime->rate);
 
 	} else if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		pr_warn("dummy_codec_prepare set up SNDRV_PCM_STREAM_PLAYBACK rate = %d\n",
+		pr_debug("dummy_codec_prepare set up SNDRV_PCM_STREAM_PLAYBACK rate = %d\n",
 		       substream->runtime->rate);
 	}
 	return 0;
@@ -90,7 +90,6 @@ static int dummy_codec_trigger(struct snd_pcm_substream *substream, int command,
 		break;
 	}
 
-	pr_warn("dummy_codec_trigger command = %d\n ", command);
 	return 0;
 }
 
@@ -474,13 +473,6 @@ static struct snd_soc_dai_driver dummy_6323_dai_codecs[] = {
 	 },
 	{
 	 .name = MT_SOC_CODEC_FM_I2S_DUMMY_DAI_NAME,
-	 .playback = {
-		      .stream_name = MT_SOC_FM_I2S_PLAYBACK_STREAM_NAME,
-		      .channels_min = 1,
-		      .channels_max = 8,
-		      .rates = SNDRV_PCM_RATE_8000_192000,
-		      .formats = SND_SOC_ADV_MT_FMTS,
-		      },
 	 .capture = {
 		     .stream_name = MT_SOC_FM_I2S_PLAYBACK_STREAM_NAME,
 		     .channels_min = 1,
@@ -489,28 +481,15 @@ static struct snd_soc_dai_driver dummy_6323_dai_codecs[] = {
 		     .formats = SND_SOC_ADV_MT_FMTS,
 		     },
 	 },
-	{
-	 .name = MT_SOC_CODEC_OFFLOAD_GDMA_DAI_NAME,
-	 .playback = {
-		      .stream_name = MT_SOC_OFFLOAD_GDMA_STREAM_NAME,
-		      .channels_min = 1,
-		      .channels_max = 2,
-		      .rates = SNDRV_PCM_RATE_8000_48000,
-		      .formats = SND_SOC_ADV_MT_FMTS,
-		      },
-	 .compress_dai = 1,
-	 },
 };
 
 static int dummy_codec_probe(struct snd_soc_codec *codec)
 {
-	pr_warn("%s()\n", __func__);
 	return 0;
 }
 
 static int dummy_codec_remove(struct snd_soc_codec *codec)
 {
-	pr_warn("%s()\n", __func__);
 	return 0;
 }
 
@@ -529,7 +508,7 @@ static int mtk_dummy_codec_dev_probe(struct platform_device *pdev)
 	if (pdev->dev.of_node)
 		dev_set_name(&pdev->dev, "%s", MT_SOC_CODEC_DUMMY_NAME);
 
-	pr_warn("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
+	pr_debug("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
 	return snd_soc_register_codec(&pdev->dev,
 				      &soc_mtk_codec, dummy_6323_dai_codecs,
 				      ARRAY_SIZE(dummy_6323_dai_codecs));
@@ -537,7 +516,7 @@ static int mtk_dummy_codec_dev_probe(struct platform_device *pdev)
 
 static int mtk_dummy_codec_dev_remove(struct platform_device *pdev)
 {
-	pr_warn("%s:\n", __func__);
+	pr_debug("%s:\n", __func__);
 
 	snd_soc_unregister_codec(&pdev->dev);
 	return 0;
@@ -568,7 +547,7 @@ static struct platform_device *soc_mtk_codec_dummy_dev;
 
 static int __init mtk_dummy_codec_init(void)
 {
-	pr_warn("%s:\n", __func__);
+	pr_debug("%s:\n", __func__);
 #ifndef CONFIG_OF
 	int ret = 0;
 
@@ -590,7 +569,7 @@ module_init(mtk_dummy_codec_init);
 
 static void __exit mtk_codec_dummy_exit(void)
 {
-	pr_warn("%s:\n", __func__);
+	pr_debug("%s:\n", __func__);
 
 	platform_driver_unregister(&mtk_codec_dummy_driver);
 }

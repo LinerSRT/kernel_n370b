@@ -1,17 +1,19 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2015 MediaTek Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 /*******************************************************************************
  *
@@ -469,19 +471,6 @@ static struct snd_soc_dai_driver mtk_dai_stub_dai[] = {
 	},
 	{
 		.playback = {
-			.stream_name = MT_SOC_HP_IMPEDANCE_STREAM_NAME,
-			.rates = SNDRV_PCM_RATE_8000_48000,
-			.formats = SND_SOC_ADV_MT_FMTS,
-			.channels_min = 1,
-			.channels_max = 8,
-			.rate_min = 8000,
-			.rate_max = 48000,
-		},
-		.name = MT_SOC_HP_IMPEDANCE_NAME,
-		.ops = &mtk_dai_stub_ops,
-	},
-	{
-		.playback = {
 			.stream_name = MT_SOC_FM_I2S_PLAYBACK_STREAM_NAME,
 			.rates = SNDRV_PCM_RATE_8000_48000,
 			.formats = SND_SOC_ADV_MT_FMTS,
@@ -526,20 +515,6 @@ static struct snd_soc_dai_driver mtk_dai_stub_dai[] = {
 	},
 	{
 		.playback = {
-			.stream_name = MT_SOC_OFFLOAD_GDMA_STREAM_NAME,
-			.rates = SNDRV_PCM_RATE_8000_48000,
-			.formats = SND_SOC_ADV_MT_FMTS,
-			.channels_min = 1,
-			.channels_max = 2,
-			.rate_min = 8000,
-			.rate_max = 48000,
-		},
-		.compress_dai = 1,
-		.name = MT_SOC_OFFLOAD_GDMA_NAME,
-		.ops = &mtk_dai_stub_ops,
-	},
-	{
-		.playback = {
 			.stream_name = MT_SOC_DL2_STREAM_NAME,
 			.rates = SNDRV_PCM_RATE_8000_192000,
 			.formats = SND_SOC_ADV_MT_FMTS,
@@ -562,7 +537,7 @@ static int mtk_dai_stub_dev_probe(struct platform_device *pdev)
 {
 	int rc = 0;
 
-	pr_warn("mtk_dai_stub_dev_probe  name %s\n", dev_name(&pdev->dev));
+	pr_debug("mtk_dai_stub_dev_probe  name %s\n", dev_name(&pdev->dev));
 
 	pdev->dev.coherent_dma_mask = DMA_BIT_MASK(64);
 
@@ -573,18 +548,18 @@ static int mtk_dai_stub_dev_probe(struct platform_device *pdev)
 	if (pdev->dev.of_node)
 		dev_set_name(&pdev->dev, "%s", MT_SOC_DAI_NAME);
 
-	pr_warn("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
+	pr_debug("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
 
 	rc = snd_soc_register_component(&pdev->dev, &mt_dai_component,
 					mtk_dai_stub_dai, ARRAY_SIZE(mtk_dai_stub_dai));
 
-	pr_warn("%s: rc  = %d\n", __func__, rc);
+	pr_debug("%s: rc  = %d\n", __func__, rc);
 	return rc;
 }
 
 static int mtk_dai_stub_dev_remove(struct platform_device *pdev)
 {
-	pr_warn("%s:\n", __func__);
+	pr_debug("%s:\n", __func__);
 
 	snd_soc_unregister_component(&pdev->dev);
 
@@ -616,7 +591,7 @@ static struct platform_device *soc_mtk_dai_dev;
 
 static int __init mtk_dai_stub_init(void)
 {
-	pr_warn("%s:\n", __func__);
+	pr_debug("%s:\n", __func__);
 #ifndef CONFIG_OF
 	int ret;
 
@@ -637,7 +612,7 @@ static int __init mtk_dai_stub_init(void)
 
 static void __exit mtk_dai_stub_exit(void)
 {
-	pr_warn("%s:\n", __func__);
+	pr_debug("%s:\n", __func__);
 
 	platform_driver_unregister(&mtk_dai_stub_driver);
 }

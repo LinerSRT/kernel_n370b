@@ -1,17 +1,19 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2015 MediaTek Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 /*******************************************************************************
  *
@@ -92,7 +94,7 @@ static const struct soc_enum Audio_fmtx_Enum[] = {
 static int Audio_fmtx_hdoutput_Get(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("Audio_AmpR_Get = %d\n", fmtx_hdoutput_control);
+	pr_debug("Audio_AmpR_Get = %d\n", fmtx_hdoutput_control);
 	ucontrol->value.integer.value[0] = fmtx_hdoutput_control;
 	return 0;
 }
@@ -100,7 +102,7 @@ static int Audio_fmtx_hdoutput_Get(struct snd_kcontrol *kcontrol,
 static int Audio_fmtx_hdoutput_Set(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(fmtx_HD_output)) {
 		pr_warn("return -EINVAL\n");
 		return -EINVAL;
@@ -157,7 +159,7 @@ static int mtk_pcm_fmtx_stop(struct snd_pcm_substream *substream)
 	/* AFE_BLOCK_T *Afe_Block = &(pMemControl->rBlock); */
 	PRINTK_AUD_FMTX("mtk_pcm_fmtx_stop\n");
 
-	SetIrqEnable(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, false);
+	irq_remove_user(substream, Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE);
 
 	/* here to turn off digital part */
 	SetConnection(Soc_Aud_InterCon_DisConnect, Soc_Aud_InterConnectionInput_I05,
@@ -245,7 +247,7 @@ static void SetFMTXBuffer(struct snd_pcm_substream *substream,
 	pblock->u4DataRemained  = 0;
 	pblock->u4fsyncflag     = false;
 	pblock->uResetFlag      = true;
-	pr_warn("SetFMTXBuffer u4BufferSize = %d pucVirtBufAddr = %p pucPhysBufAddr = 0x%x\n",
+	pr_debug("SetFMTXBuffer u4BufferSize = %d pucVirtBufAddr = %p pucPhysBufAddr = 0x%x\n",
 	       pblock->u4BufferSize, pblock->pucVirtBufAddr, pblock->pucPhysBufAddr);
 	/* set dram address top hardware */
 	Afe_Set_Reg(AFE_DL1_BASE , pblock->pucPhysBufAddr , 0xffffffff);
@@ -274,7 +276,7 @@ static int mtk_pcm_fmtx_hw_params(struct snd_pcm_substream *substream,
 		SetFMTXBuffer(substream, hw_params);
 	}
 	/* ------------------------------------------------------- */
-	pr_warn("1 dma_bytes = %zu dma_area = %p dma_addr = 0x%lx\n",
+	pr_debug("1 dma_bytes = %zu dma_area = %p dma_addr = 0x%lx\n",
 	       substream->runtime->dma_bytes, substream->runtime->dma_area,
 	       (long)substream->runtime->dma_addr);
 
@@ -315,7 +317,7 @@ static int mtk_pcm_fmtx_open(struct snd_pcm_substream *substream)
 	if (mPlaybackSramState == SRAM_STATE_PLAYBACKDRAM)
 		AudDrv_Emi_Clk_On();
 
-	pr_warn("mtk_I2S0dl1_hardware.buffer_bytes_max = %zu mPlaybackSramState = %d\n",
+	pr_debug("mtk_I2S0dl1_hardware.buffer_bytes_max = %zu mPlaybackSramState = %d\n",
 	       mtk_fmtx_hardware.buffer_bytes_max, mPlaybackSramState);
 	runtime->hw = mtk_fmtx_hardware;
 
@@ -327,20 +329,17 @@ static int mtk_pcm_fmtx_open(struct snd_pcm_substream *substream)
 	ret = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_RATE,
 					 &constraints_fmtx_sample_rates);
 
-	if (ret < 0)
-		pr_warn("snd_pcm_hw_constraint_integer failed\n");
-
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		pr_warn("SNDRV_PCM_STREAM_PLAYBACK mtkalsa_fmtx_playback_constraints\n");
+		pr_debug("SNDRV_PCM_STREAM_PLAYBACK mtkalsa_fmtx_playback_constraints\n");
 	else
-		pr_warn("SNDRV_PCM_STREAM_CAPTURE mtkalsa_fmtx_playback_constraints\n");
+		pr_debug("SNDRV_PCM_STREAM_CAPTURE mtkalsa_fmtx_playback_constraints\n");
 
 	if (ret < 0) {
-		pr_err("ret < 0 mtkalsa_fmtx_playback close\n");
+		pr_warn("ret < 0 mtkalsa_fmtx_playback close\n");
 		mtk_pcm_fmtx_close(substream);
 		return ret;
 	}
-	/* pr_warn("mtk_pcm_I2S0dl1_open return\n"); */
+	/* pr_debug("mtk_pcm_I2S0dl1_open return\n"); */
 	return 0;
 }
 
@@ -380,15 +379,12 @@ static int mtk_pcm_fmtx_start(struct snd_pcm_substream *substream)
 	    runtime->format == SNDRV_PCM_FORMAT_U32_LE) {
 		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL1,
 					     AFE_WLEN_32_BIT_ALIGN_8BIT_0_24BIT_DATA);
-		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL2,
-					     AFE_WLEN_32_BIT_ALIGN_8BIT_0_24BIT_DATA);
 		SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_16BIT,
 					  Soc_Aud_InterConnectionOutput_O00); /* FM Tx only support 16 bit */
 		SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_16BIT,
 					  Soc_Aud_InterConnectionOutput_O01); /* FM Tx only support 16 bit */
 	} else {
 		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL1, AFE_WLEN_16_BIT);
-		SetMemIfFetchFormatPerSample(Soc_Aud_Digital_Block_MEM_DL2, AFE_WLEN_16_BIT);
 		SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_16BIT,
 					  Soc_Aud_InterConnectionOutput_O00);
 		SetoutputConnectionFormat(OUTPUT_DATA_FORMAT_16BIT,
@@ -417,10 +413,10 @@ static int mtk_pcm_fmtx_start(struct snd_pcm_substream *substream)
 	SetMemoryPathEnable(Soc_Aud_Digital_Block_MEM_DL1, true);
 
 	/* here to set interrupt */
-	SetIrqMcuCounter(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE,
-			 (runtime->period_size * 2 / 3));
-	SetIrqMcuSampleRate(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, runtime->rate);
-	SetIrqEnable(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, true);
+	irq_add_user(substream,
+		     Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE,
+		     runtime->rate,
+		     runtime->period_size * 2 / 3);
 
 	EnableAfe(true);
 
@@ -429,7 +425,7 @@ static int mtk_pcm_fmtx_start(struct snd_pcm_substream *substream)
 
 static int mtk_pcm_fmtx_trigger(struct snd_pcm_substream *substream, int cmd)
 {
-	pr_warn("mtk_pcm_fmtx_trigger cmd = %d\n", cmd);
+	pr_debug("mtk_pcm_fmtx_trigger cmd = %d\n", cmd);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
@@ -464,7 +460,7 @@ static int mtk_pcm_fmtx_copy(struct snd_pcm_substream *substream,
 			Afe_Block->u4WriteIdx, Afe_Block->u4DMAReadIdx, Afe_Block->u4DataRemained);
 
 	if (Afe_Block->u4BufferSize == 0) {
-		pr_err("AudDrv_write: u4BufferSize=0 Error");
+		pr_warn("AudDrv_write: u4BufferSize=0 Error");
 		return 0;
 	}
 

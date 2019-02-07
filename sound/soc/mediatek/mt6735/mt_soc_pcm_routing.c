@@ -1,17 +1,19 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2015 MediaTek Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 /*******************************************************************************
  *
@@ -57,7 +59,6 @@
 #include "mt_soc_pcm_common.h"
 #include "mt_auddrv_devtree_parser.h"
 #include "auddrv_underflow_mach.h"
-#include "AudDrv_OffloadCommon.h"
 #include "AudDrv_Common_func.h"
 #include "AudDrv_Gpio.h"
 
@@ -82,6 +83,11 @@
 #include <cust_gpio_usage.h>
 #endif
 */
+
+#ifdef CONFIG_COMPAT
+#include <linux/compat.h>
+#endif
+
 /*
  *    function implementation
  */
@@ -143,7 +149,7 @@ int Get_Audio_Mode(void)
 static int Audio_SideGen_Get(struct snd_kcontrol *kcontrol,
 			     struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("Audio_AmpR_Get = %d\n", mDac_Sinegen);
+	pr_debug("Audio_AmpR_Get = %d\n", mDac_Sinegen);
 	ucontrol->value.integer.value[0] = mDac_Sinegen;
 	return 0;
 }
@@ -153,9 +159,9 @@ static int Audio_SideGen_Set(struct snd_kcontrol *kcontrol,
 {
 	int index = 0;
 
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(DAC_DL_SIDEGEN)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	index = ucontrol->value.integer.value[0];
@@ -294,7 +300,7 @@ static int Audio_SideGen_Set(struct snd_kcontrol *kcontrol,
 static int Audio_SideGen_SampleRate_Get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	ucontrol->value.integer.value[0] = mDac_SampleRate;
 	return 0;
 }
@@ -304,11 +310,11 @@ static int Audio_SideGen_SampleRate_Set(struct snd_kcontrol *kcontrol,
 {
 	int index = 0;
 
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(
 		    DAC_DL_SIDEGEN_SAMEPLRATE)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	index = ucontrol->value.integer.value[0];
@@ -354,7 +360,7 @@ static int Audio_SideGen_SampleRate_Set(struct snd_kcontrol *kcontrol,
 static int Audio_SideGen_Amplitude_Get(struct snd_kcontrol *kcontrol,
 				       struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("Audio_AmpR_Get = %d\n", mDac_Sidegen_Amplitude);
+	pr_debug("Audio_AmpR_Get = %d\n", mDac_Sidegen_Amplitude);
 	return 0;
 }
 
@@ -363,10 +369,10 @@ static int Audio_SideGen_Amplitude_Set(struct snd_kcontrol *kcontrol,
 {
 	int index = 0;
 
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(DAC_DL_SIDEGEN_AMPLITUE)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	index = ucontrol->value.integer.value[0];
@@ -377,7 +383,7 @@ static int Audio_SideGen_Amplitude_Set(struct snd_kcontrol *kcontrol,
 static int Audio_SideTone_Get(struct snd_kcontrol *kcontrol,
 			      struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("Audio_SideTone_Get = %d\n", mEnableSidetone);
+	pr_debug("Audio_SideTone_Get = %d\n", mEnableSidetone);
 	ucontrol->value.integer.value[0] = mEnableSidetone;
 	return 0;
 }
@@ -387,10 +393,10 @@ static int Audio_SideTone_Set(struct snd_kcontrol *kcontrol,
 {
 	int index = 0;
 
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(ENABLESIDETONE)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	index = ucontrol->value.integer.value[0];
@@ -404,7 +410,7 @@ static int Audio_SideTone_Set(struct snd_kcontrol *kcontrol,
 static int Audio_ModemPcm_ASRC_Get(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s(), mModemPcm_ASRC_on=%d\n", __func__, mModemPcm_ASRC_on);
+	pr_debug("%s(), mModemPcm_ASRC_on=%d\n", __func__, mModemPcm_ASRC_on);
 	ucontrol->value.integer.value[0] = mModemPcm_ASRC_on;
 	return 0;
 }
@@ -413,9 +419,9 @@ static int Audio_ModemPcm_ASRC_Get(struct snd_kcontrol *kcontrol,
 static int AudioDebug_Setting_Set(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(Audio_Debug_Setting)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	EnableSideGenHw(Soc_Aud_InterConnectionOutput_O03,
@@ -444,7 +450,7 @@ static void Auddrv_I2S1GpioSet(void)
 #ifdef CONFIG_OF
 #if defined(CONFIG_MTK_LEGACY)
 
-	AUDDRV_I2S_ATTRIBUTE *I2S1Settingws = GetI2SSetting(Auddrv_I2S1_Setting,
+	AUDDRV_I2S_ATTRIBUTE * I2S1Settingws = GetI2SSetting(Auddrv_I2S1_Setting,
 							    Auddrv_I2S_Setting_ws);
 	AUDDRV_I2S_ATTRIBUTE *I2S1Settingbck = GetI2SSetting(Auddrv_I2S1_Setting,
 							     Auddrv_I2S_Setting_bck);
@@ -507,16 +513,16 @@ static void Auddrv_I2S1GpioReset(void)
 static int AudioDebug_Setting_Get(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	return 0;
 }
 
 static int AudioI2S1_Setting_Set(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(Audio_I2S1_Setting)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	AudioI2S1Setting = ucontrol->value.enumerated.item[0];
@@ -530,7 +536,7 @@ static int AudioI2S1_Setting_Set(struct snd_kcontrol *kcontrol,
 static int AudioI2S1_Setting_Get(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	ucontrol->value.enumerated.item[0] = AudioI2S1Setting;
 	return 0;
 }
@@ -539,7 +545,7 @@ static int AudioI2S1_Setting_Get(struct snd_kcontrol *kcontrol,
 static int Audio_ModemPcm_ASRC_Set(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("+%s()\n", __func__);
+	pr_debug("+%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(
 		    InterModemPcm_ASRC_Switch)) {
 		pr_warn("return -EINVAL\n");
@@ -547,7 +553,7 @@ static int Audio_ModemPcm_ASRC_Set(struct snd_kcontrol *kcontrol,
 	}
 	mModemPcm_ASRC_on = (bool)ucontrol->value.integer.value[0];
 	Audio_ModemPcm2_ASRC_Set(mModemPcm_ASRC_on);
-	pr_warn("-%s(), mModemPcm_ASRC_on=%d\n", __func__, mModemPcm_ASRC_on);
+	pr_debug("-%s(), mModemPcm_ASRC_on=%d\n", __func__, mModemPcm_ASRC_on);
 	return 0;
 }
 #endif
@@ -555,7 +561,7 @@ static int Audio_ModemPcm_ASRC_Set(struct snd_kcontrol *kcontrol,
 static int Audio_Ipoh_Setting_Get(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	ucontrol->value.integer.value[0] = AudDrvSuspend_ipoh_Status;
 	return 0;
 }
@@ -563,9 +569,9 @@ static int Audio_Ipoh_Setting_Get(struct snd_kcontrol *kcontrol,
 static int Audio_Ipoh_Setting_Set(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("+%s()\n", __func__);
+	pr_debug("+%s()\n", __func__);
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(Audio_IPOH_State)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	AudDrvSuspend_ipoh_Status = ucontrol->value.integer.value[0];
@@ -575,7 +581,7 @@ static int Audio_Ipoh_Setting_Set(struct snd_kcontrol *kcontrol,
 static int Audio_Mode_Get(struct snd_kcontrol *kcontrol,
 			  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("Audio_SideTone_Get = %d\n", mAudio_Mode);
+	pr_debug("Audio_SideTone_Get = %d\n", mAudio_Mode);
 	ucontrol->value.integer.value[0] = mAudio_Mode;
 	return 0;
 }
@@ -583,61 +589,74 @@ static int Audio_Mode_Get(struct snd_kcontrol *kcontrol,
 static int Audio_Mode_Set(struct snd_kcontrol *kcontrol,
 			  struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 
 	if (ucontrol->value.enumerated.item[0] > ARRAY_SIZE(ANDROID_AUDIO_MODE)) {
-		pr_err("return -EINVAL\n");
+		pr_warn("return -EINVAL\n");
 		return -EINVAL;
 	}
 	mAudio_Mode = ucontrol->value.integer.value[0];
 	return 0;
 }
 
-static int Audio_Irqcnt1_Get(struct snd_kcontrol *kcontrol,
-			     struct snd_ctl_elem_value *ucontrol)
+#ifdef AUDIO_DL2_ISR_COPY_SUPPORT
+
+static int Audio_DL2_DataTransfer(struct snd_kcontrol *kcontrol,
+			struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("Audio_Irqcnt1_Get\n");
-	AudDrv_Clk_On();
-	ucontrol->value.integer.value[0] =   Afe_Get_Reg(AFE_IRQ_MCU_CNT1);
-	AudDrv_Clk_Off();
+#ifdef CONFIG_COMPAT
+	void *addr =  compat_ptr(ucontrol->value.integer.value[0]);
+#else
+	void *addr =  (void *)ucontrol->value.integer.value[0];
+#endif
+
+	uint32 size =  ucontrol->value.integer.value[1];
+
+	/* pr_debug("%s(), addr 0x%x, size %d\n", __func__, (int)addr, size); */
+
+	mtk_dl2_copy2buffer(addr, size);
 	return 0;
 }
 
-static int Audio_Irqcnt1_Set(struct snd_kcontrol *kcontrol,
-			     struct snd_ctl_elem_value *ucontrol)
-{
-	uint32 irq1_cnt =  ucontrol->value.integer.value[0];
+#endif
 
-	pr_warn("%s()\n", __func__);
-	AudDrv_Clk_On();
-	/* Afe_Set_Reg(AFE_IRQ_MCU_CNT1, irq1_cnt, 0xffffffff); */
-	SetIrqMcuCounter(Soc_Aud_IRQ_MCU_MODE_IRQ1_MCU_MODE, irq1_cnt);
-	AudDrv_Clk_Off();
+static int Audio_LowLatencyDebug_Get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = get_LowLatencyDebug();
 	return 0;
 }
 
-static int Audio_Irqcnt2_Get(struct snd_kcontrol *kcontrol,
-			     struct snd_ctl_elem_value *ucontrol)
+static int Audio_LowLatencyDebug_Set(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("Audio_Irqcnt2_Get\n");
-	AudDrv_Clk_On();
-	ucontrol->value.integer.value[0] =   Afe_Get_Reg(AFE_IRQ_MCU_CNT2);
-	AudDrv_Clk_Off();
+	set_LowLatencyDebug(ucontrol->value.integer.value[0]);
 	return 0;
 }
 
-static int Audio_Irqcnt2_Set(struct snd_kcontrol *kcontrol,
-			     struct snd_ctl_elem_value *ucontrol)
+static int Audio_AssignDRAM_Get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
 {
-	uint32 irq1_cnt =  ucontrol->value.integer.value[0];
-
-	pr_warn("%s()\n", __func__);
-	AudDrv_Clk_On();
-	/* Afe_Set_Reg(AFE_IRQ_MCU_CNT2, irq1_cnt, 0xffffffff); */
-	SetIrqMcuCounter(Soc_Aud_IRQ_MCU_MODE_IRQ2_MCU_MODE, irq1_cnt);
-	AudDrv_Clk_Off();
+	pr_debug("%s()\n", __func__);
+	ucontrol->value.integer.value[0] = 0;
 	return 0;
 }
+
+static int Audio_AssignDRAM_Set(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	uint32 value = ucontrol->value.integer.value[0];
+
+	pr_debug("%s(), meminterface %d\n", __func__, value);
+	if (value < Soc_Aud_Digital_Block_NUM_OF_MEM_INTERFACE) {
+		AFE_MEM_CONTROL_T *pMemControl = Get_Mem_ControlT(value);
+
+		pMemControl->mAssignDRAM = true;
+	}
+	return 0;
+}
+
+
 
 /* static struct snd_dma_buffer *Dl1_Playback_dma_buf  = NULL; */
 
@@ -646,7 +665,7 @@ static void GetAudioTrimOffset(int channels)
 	int Buffer_on_value = 0 , Buffer_offl_value = 0, Buffer_offr_value = 0;
 	const int off_counter = 20, on_counter  = 20 , Const_DC_OFFSET = 2048;
 
-	pr_warn("%s channels = %d\n", __func__, channels);
+	pr_debug("%s channels = %d\n", __func__, channels);
 	/* open headphone and digital part */
 	AudDrv_Clk_On();
 	AudDrv_Emi_Clk_On();
@@ -672,7 +691,7 @@ static void GetAudioTrimOffset(int channels)
 	/*msleep(1);*/
 	usleep_range(1*1000, 20*1000);
 	Buffer_offl_value = PMIC_IMM_GetOneChannelValue(MT6328_AUX_CH9, off_counter, 0);
-	pr_warn("Buffer_offl_value = %d\n", Buffer_offl_value);
+	pr_debug("Buffer_offl_value = %d\n", Buffer_offl_value);
 	EnableTrimbuffer(false);
 
 	/* Get HPR off offset */
@@ -683,7 +702,7 @@ static void GetAudioTrimOffset(int channels)
 	/*msleep(1);*/
 	usleep_range(1*1000, 20*1000);
 	Buffer_offr_value = PMIC_IMM_GetOneChannelValue(MT6328_AUX_CH9, off_counter, 0);
-	pr_warn("Buffer_offr_value = %d\n", Buffer_offr_value);
+	pr_debug("Buffer_offr_value = %d\n", Buffer_offr_value);
 	EnableTrimbuffer(false);
 
 	switch (channels) {
@@ -720,7 +739,7 @@ static void GetAudioTrimOffset(int channels)
 	Buffer_on_value = PMIC_IMM_GetOneChannelValue(MT6328_AUX_CH9, on_counter, 0);
 
 	mHplOffset = Buffer_on_value - Buffer_offl_value + Const_DC_OFFSET;
-	pr_warn("Buffer_on_value = %d Buffer_offl_value = %d mHplOffset = %d\n",
+	pr_debug("Buffer_on_value = %d Buffer_offl_value = %d mHplOffset = %d\n",
 	       Buffer_on_value, Buffer_offl_value, mHplOffset);
 
 	EnableTrimbuffer(false);
@@ -733,7 +752,7 @@ static void GetAudioTrimOffset(int channels)
 	usleep_range(10*1000, 20*1000);
 	Buffer_on_value = PMIC_IMM_GetOneChannelValue(MT6328_AUX_CH9, on_counter, 0);
 	mHprOffset = Buffer_on_value - Buffer_offr_value + Const_DC_OFFSET;
-	pr_warn("Buffer_on_value = %d Buffer_offr_value = %d mHprOffset = %d\n",
+	pr_debug("Buffer_on_value = %d Buffer_offr_value = %d mHprOffset = %d\n",
 	       Buffer_on_value, Buffer_offr_value, mHprOffset);
 
 	switch (channels) {
@@ -757,7 +776,7 @@ static int Audio_Hpl_Offset_Get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
 #ifndef EFUSE_HP_TRIM
-	pr_warn("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	AudDrv_Clk_On();
 	if (mHplCalibrated == false) {
 		GetAudioTrimOffset(AUDIO_OFFSET_TRIM_MUX_HPL);
@@ -778,7 +797,7 @@ static int Audio_Hpl_Offset_Set(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
 #ifndef EFUSE_HP_TRIM
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	mHplOffset = ucontrol->value.integer.value[0];
 	SetHplTrimOffset(mHplOffset);
 #else
@@ -791,7 +810,7 @@ static int Audio_Hpr_Offset_Get(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
 #ifndef EFUSE_HP_TRIM
-	pr_warn("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	AudDrv_Clk_On();
 	if (mHprCalibrated == false) {
 		GetAudioTrimOffset(AUDIO_OFFSET_TRIM_MUX_HPR);
@@ -812,7 +831,7 @@ static int Audio_Hpr_Offset_Set(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
 {
 #ifndef EFUSE_HP_TRIM
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	mHprOffset = ucontrol->value.integer.value[0];
 	SetHprTrimOffset(mHprOffset);
 #else
@@ -834,20 +853,16 @@ static const struct soc_enum Audio_Routing_Enum[] = {
 };
 
 static const struct snd_kcontrol_new Audio_snd_routing_controls[] = {
-	SOC_ENUM_EXT("Audio_SideGen_Switch", Audio_Routing_Enum[0],
+	SOC_ENUM_EXT("Audio_SineGen_Switch", Audio_Routing_Enum[0],
 		Audio_SideGen_Get, Audio_SideGen_Set),
-	SOC_ENUM_EXT("Audio_SideGen_SampleRate", Audio_Routing_Enum[1],
+	SOC_ENUM_EXT("Audio_SineGen_SampleRate", Audio_Routing_Enum[1],
 	Audio_SideGen_SampleRate_Get, Audio_SideGen_SampleRate_Set),
-	SOC_ENUM_EXT("Audio_SideGen_Amplitude", Audio_Routing_Enum[2],
+	SOC_ENUM_EXT("Audio_SineGen_Amplitude", Audio_Routing_Enum[2],
 	Audio_SideGen_Amplitude_Get, Audio_SideGen_Amplitude_Set),
 	SOC_ENUM_EXT("Audio_Sidetone_Switch", Audio_Routing_Enum[3],
 	Audio_SideTone_Get, Audio_SideTone_Set),
 	SOC_ENUM_EXT("Audio_Mode_Switch", Audio_Routing_Enum[4],
 	Audio_Mode_Get, Audio_Mode_Set),
-	SOC_SINGLE_EXT("Audio IRQ1 CNT", SND_SOC_NOPM, 0, 65536, 0,
-	Audio_Irqcnt1_Get, Audio_Irqcnt1_Set),
-	SOC_SINGLE_EXT("Audio IRQ2 CNT", SND_SOC_NOPM, 0, 65536, 0,
-	Audio_Irqcnt2_Get, Audio_Irqcnt2_Set),
 	SOC_SINGLE_EXT("Audio HPL Offset", SND_SOC_NOPM, 0 , 0x20000, 0,
 	Audio_Hpl_Offset_Get, Audio_Hpl_Offset_Set),
 	SOC_SINGLE_EXT("Audio HPR Offset", SND_SOC_NOPM, 0, 0x20000, 0,
@@ -858,13 +873,21 @@ static const struct snd_kcontrol_new Audio_snd_routing_controls[] = {
 	Audio_Ipoh_Setting_Get, Audio_Ipoh_Setting_Set),
 	SOC_ENUM_EXT("Audio_I2S1_Setting", Audio_Routing_Enum[8],
 	AudioI2S1_Setting_Get, AudioI2S1_Setting_Set),
+#ifdef AUDIO_DL2_ISR_COPY_SUPPORT
+	SOC_DOUBLE_EXT("Audio_DL2_DataTransfer", SND_SOC_NOPM, 0, 1, 65536, 0,
+	NULL, Audio_DL2_DataTransfer),
+#endif
+	SOC_SINGLE_EXT("Audio_LowLatency_Debug", SND_SOC_NOPM, 0, 0x20000, 0,
+	Audio_LowLatencyDebug_Get, Audio_LowLatencyDebug_Set),
+	SOC_SINGLE_EXT("Audio_Assign_DRAM", SND_SOC_NOPM, 0, 0x20000, 0,
+	Audio_AssignDRAM_Get, Audio_AssignDRAM_Set),
 };
 
 
 void EnAble_Anc_Path(int state)
 {
 	/* 6752 todo? */
-	pr_warn("%s not supported in 6752!!!\n ", __func__);
+	pr_debug("%s not supported in 6752!!!\n ", __func__);
 
 }
 
@@ -872,7 +895,7 @@ static int m_Anc_State = AUDIO_ANC_ON;
 static int Afe_Anc_Get(struct snd_kcontrol *kcontrol,
 		       struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	ucontrol->value.integer.value[0] = m_Anc_State;
 	return 0;
 }
@@ -880,7 +903,7 @@ static int Afe_Anc_Get(struct snd_kcontrol *kcontrol,
 static int Afe_Anc_Set(struct snd_kcontrol *kcontrol,
 		       struct snd_ctl_elem_value *ucontrol)
 {
-	pr_warn("%s()\n", __func__);
+	pr_debug("%s()\n", __func__);
 	EnAble_Anc_Path(ucontrol->value.integer.value[0]);
 	m_Anc_State = ucontrol->value.integer.value[0];
 	return 0;
@@ -908,18 +931,15 @@ static struct snd_pcm_hw_constraint_list constraints_sample_rates = {
 static int mtk_routing_pcm_open(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	int err = 0;
 	int ret = 0;
 
-	pr_warn("mtk_routing_pcm_open\n");
+	pr_debug("mtk_routing_pcm_open\n");
 
 	ret = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_RATE,
 					 &constraints_sample_rates);
-	if (ret < 0)
-		pr_warn("snd_pcm_hw_constraint_integer failed\n");
 
 	/* print for hw pcm information */
-	pr_warn("mtk_routing_pcm_open runtime rate = %d channels = %d\n", runtime->rate,
+	pr_debug("mtk_routing_pcm_open runtime rate = %d channels = %d\n", runtime->rate,
 	       runtime->channels);
 	if (substream->pcm->device & 1) {
 		runtime->hw.info &= ~SNDRV_PCM_INFO_INTERLEAVED;
@@ -930,14 +950,14 @@ static int mtk_routing_pcm_open(struct snd_pcm_substream *substream)
 				      SNDRV_PCM_INFO_MMAP_VALID);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		pr_warn("SNDRV_PCM_STREAM_PLAYBACK mtkalsa_playback_constraints\n");
+		pr_debug("SNDRV_PCM_STREAM_PLAYBACK mtkalsa_playback_constraints\n");
 
-	if (err < 0) {
+	if (ret < 0) {
 		pr_warn("mtk_routing_pcm_close\n");
 		mtk_routing_pcm_close(substream);
-		return err;
+		return ret;
 	}
-	pr_warn("mtk_routing_pcm_open return\n");
+	pr_debug("mtk_routing_pcm_open return\n");
 	return 0;
 }
 
@@ -947,7 +967,6 @@ static int mtk_routing_pcm_close(struct snd_pcm_substream *substream)
 }
 static int mtk_routing_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
-	pr_warn("%s cmd = %d\n", __func__, cmd);
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
@@ -970,7 +989,6 @@ static int mtk_routing_pcm_silence(struct snd_pcm_substream *substream,
 				   int channel, snd_pcm_uframes_t pos,
 				   snd_pcm_uframes_t count)
 {
-	pr_warn("mtk_routing_pcm_silence\n");
 	return 0; /* do nothing */
 }
 
@@ -980,13 +998,11 @@ static void *dummy_page[2];
 static struct page *mtk_routing_pcm_page(struct snd_pcm_substream *substream,
 					 unsigned long offset)
 {
-	pr_warn("dummy_pcm_page\n");
 	return virt_to_page(dummy_page[substream->stream]); /* the same page */
 }
 
 static int mtk_routing_pcm_prepare(struct snd_pcm_substream *substream)
 {
-	pr_warn("mtk_alsa_prepare\n");
 	return 0;
 }
 
@@ -1026,7 +1042,7 @@ static struct snd_soc_platform_driver mtk_soc_routing_platform = {
 
 static int mtk_afe_routing_probe(struct platform_device *pdev)
 {
-	pr_warn("mtk_afe_routing_probe\n");
+	pr_debug("mtk_afe_routing_probe\n");
 
 	pdev->dev.coherent_dma_mask = DMA_BIT_MASK(64);
 	if (!pdev->dev.dma_mask)
@@ -1035,7 +1051,7 @@ static int mtk_afe_routing_probe(struct platform_device *pdev)
 	if (pdev->dev.of_node)
 		dev_set_name(&pdev->dev, "%s", MT_SOC_ROUTING_PCM);
 
-	pr_warn("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
+	pr_debug("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
 	return snd_soc_register_platform(&pdev->dev,
 					 &mtk_soc_routing_platform);
 }
@@ -1045,13 +1061,13 @@ static int mtk_asoc_routing_pcm_new(struct snd_soc_pcm_runtime *rtd)
 	int ret = 0;
 
 	pruntimepcm  = rtd;
-	pr_warn("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	return ret;
 }
 
 static int mtk_afe_routing_platform_probe(struct snd_soc_platform *platform)
 {
-	pr_warn("mtk_afe_routing_platform_probe\n");
+	pr_debug("mtk_afe_routing_platform_probe\n");
 
 	/* add  controls */
 	snd_soc_add_platform_controls(platform, Audio_snd_routing_controls,
@@ -1073,7 +1089,7 @@ static int mtk_afe_routing_remove(struct platform_device *pdev)
 /* supend and resume function */
 static int mtk_routing_pm_ops_suspend(struct device *device)
 {
-	pr_warn("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	if (get_voice_status() == true || get_voice_md2_status() == true)
 		return 0;
 
@@ -1092,14 +1108,14 @@ static int mtk_routing_pm_ops_suspend(struct device *device)
 
 static int mtk_pm_ops_suspend_ipo(struct device *device)
 {
-	pr_warn("%s", __func__);
+	pr_debug("%s", __func__);
 	AudDrvSuspend_ipoh_Status = true;
 	return mtk_routing_pm_ops_suspend(device);
 }
 
 static int mtk_routing_pm_ops_resume(struct device *device)
 {
-	pr_warn("%s\n ", __func__);
+	pr_debug("%s\n ", __func__);
 	if (AudDrvSuspendStatus == true) {
 		AudDrv_Suspend_Clk_On();
 		if (ConditionEnterSuspend() == true) {
@@ -1113,7 +1129,7 @@ static int mtk_routing_pm_ops_resume(struct device *device)
 
 static int mtk_pm_ops_resume_ipo(struct device *device)
 {
-	pr_warn("%s", __func__);
+	pr_debug("%s", __func__);
 	return mtk_routing_pm_ops_resume(device);
 }
 
@@ -1157,7 +1173,7 @@ static int __init mtk_soc_routing_platform_init(void)
 {
 	int ret = 0;
 
-	pr_warn("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 #ifndef CONFIG_OF
 	soc_mtkafe_routing_dev = platform_device_alloc(MT_SOC_ROUTING_PCM , -1);
 	if (!soc_mtkafe_routing_dev)
@@ -1179,8 +1195,7 @@ module_init(mtk_soc_routing_platform_init);
 
 static void __exit mtk_soc_routing_platform_exit(void)
 {
-
-	pr_warn("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	platform_driver_unregister(&mtk_afe_routing_driver);
 }
 module_exit(mtk_soc_routing_platform_exit);
